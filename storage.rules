@@ -1,0 +1,11 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      // 개발 중에는 모든 읽기/쓰기를 허용합니다.
+      // 실제 앱 출시 전에는 반드시 보안 규칙을 강화해야 합니다.
+      // 예: allow read, write: if request.auth != null;
+      allow read, write;
+    }
+  }
+}

@@ -1,0 +1,11 @@
+[
+  {
+    "origin": ["https://jejudb.web.app", "https://jejudb.firebaseapp.com", "http://localhost:5173"],
+    "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "responseHeader": [
+      "Content-Type",
+      "Authorization"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]

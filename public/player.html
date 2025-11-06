@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">실시간 CCTV</title>
+
+    <!-- Video.js CSS -->
+    <link href="https://vjs.zencdn.net/8.8.0/video-js.css" rel="stylesheet">
+
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 1320px;
+            margin: 0 auto;
+        }
+
+        #title-area {
+            text-align: left;
+            margin-bottom: 20px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        #video-container {
+            width: 1280px;
+            height: 720px;
+            float: left;
+        }
+
+        #video-player {
+            width: 100% !important;
+            height: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Video.js Scripts -->
+    <script src="https://vjs.zencdn.net/8.8.0/video.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/videojs-flash@2.2.1/dist/videojs-flash.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@videojs/contrib-hls@5.15.0/dist/videojs-contrib-hls.min.js"></script>
+
+    <div class="container">
+        <div id="title-area"></div>
+
+        <div id="video-container">
+            <video
+                id="video-player"
+                class="video-js vjs-default-skin"
+                controls
+                autoplay
+                width="1280"
+                height="720"
+                data-setup='{}'>
+            </video>
+        </div>
+    </div>
+
+    <script>
+        // URL 파라미터에서 스트림 정보 가져오기
+        const urlParams = new URLSearchParams(window.location.search);
+        const streamUrl = urlParams.get('url');
+        const title = urlParams.get('title') || '실시간 CCTV';
+
+        // 제목 설정
+        document.getElementById('page-title').textContent = title;
+        document.getElementById('title-area').innerHTML = `[${title}]`;
+
+        if (streamUrl) {
+            console.log('스트림 URL:', streamUrl);
+            console.log('제목:', title);
+
+            // Video.js 플레이어 생성 - 원본 소스와 동일한 설정
+            var player = videojs('video-player', {
+                controls: true,
+                autoplay: true,
+                preload: 'auto',
+                fluid: false,
+                responsive: false,
+                width: 1280,
+                height: 720,
+                html5: {
+                    hls: {
+                        overrideNative: true,
+                        enableLowInitialPlaylist: true,
+                        smoothQualityChange: true,
+                        bandwidth: 4194304
+                    }
+                },
+                flash: {
+                    swf: 'https://vjs.zencdn.net/swf/5.4.2/video-js.swf'
+                },
+                techOrder: ['html5', 'flash']
+            });
+
+            // 플레이어 준비 완료 후
+            player.ready(function() {
+                console.log('Video.js 플레이어 준비 완료');
+
+                // 소스 설정 - 직접 HTTP 스트림 사용 (새창이므로 HTTPS 제약 없음)
+                player.src({
+                    src: streamUrl,
+                    type: 'application/x-mpegURL'
+                });
+
+                // 자동 재생
+                player.play().catch(function(error) {
+                    console.log('자동 재생 실패, 사용자 클릭 필요:', error);
+                });
+            });
+
+            // 이벤트 리스너
+            player.on('loadstart', function() {
+                console.log('스트림 로딩 시작');
+            });
+
+            player.on('canplay', function() {
+                console.log('재생 준비 완료');
+            });
+
+            player.on('playing', function() {
+                console.log('재생 시작됨');
+            });
+
+            player.on('error', function() {
+                const error = player.error();
+                console.error('재생 오류:', error);
+
+                // 에러 시 Flash 플레이어 시도
+                if (error && error.code === 4) {
+                    console.log('HTML5 실패, Flash 플레이어 시도');
+                    player.tech().dispose();
+                }
+            });
+
+        } else {
+            document.getElementById('title-area').innerHTML = '<p style="color: red;">스트림 URL이 제공되지 않았습니다.</p>';
+        }
+    </script>
+</body>
+</html>

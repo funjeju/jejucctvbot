@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Firebase Connection Test</title>
+</head>
+<body>
+    <h1>Firebase Connection Test</h1>
+    <div id="status">테스트 중...</div>
+    <div id="result"></div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD33sh80picSyFd1-r1bVyQH1UdFdAXyes",
+            authDomain: "jejudb.firebaseapp.com",
+            projectId: "jejudb",
+            storageBucket: "jejudb.firebasestorage.app",
+            messagingSenderId: "39776551937",
+            appId: "1:39776551937:web:f5c4a1b2c3d4e5f6a7b8c9"
+        };
+
+        const statusDiv = document.getElementById('status');
+        const resultDiv = document.getElementById('result');
+
+        try {
+            statusDiv.textContent = 'Firebase 초기화 중...';
+            const app = initializeApp(firebaseConfig);
+            statusDiv.textContent = 'Firestore 연결 중...';
+
+            const db = getFirestore(app);
+            statusDiv.textContent = 'spots 컬렉션 조회 중...';
+
+            const querySnapshot = await getDocs(collection(db, "spots"));
+
+            statusDiv.textContent = '✅ 연결 성공!';
+            resultDiv.innerHTML = `
+                <p><strong>연결 상태:</strong> 성공</p>
+                <p><strong>documents 개수:</strong> ${querySnapshot.size}</p>
+                <p><strong>프로젝트 ID:</strong> ${firebaseConfig.projectId}</p>
+            `;
+
+            querySnapshot.forEach((doc) => {
+                console.log(doc.id, " => ", doc.data());
+            });
+
+        } catch (error) {
+            statusDiv.textContent = '❌ 연결 실패';
+            resultDiv.innerHTML = `
+                <p><strong>오류:</strong> ${error.message}</p>
+                <p><strong>오류 코드:</strong> ${error.code || 'N/A'}</p>
+                <pre>${error.stack || 'Stack trace not available'}</pre>
+            `;
+            console.error('Firebase connection error:', error);
+        }
+    </script>
+</body>
+</html>
