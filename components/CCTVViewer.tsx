@@ -28,16 +28,20 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
         const cctvArray: WeatherSource[] = [];
         snapshot.forEach((doc) => {
           const data = doc.data();
-          cctvArray.push({
-            id: doc.id,
-            youtubeUrl: data.youtubeUrl,
-            title: data.title,
-            apiKey: data.apiKey || '',
-            direction: data.direction,
-            keywords: data.keywords || [],
-            latitude: data.latitude,
-            longitude: data.longitude,
-          } as WeatherSource);
+          // YouTube URL인 항목만 추가 (youtube.com 또는 youtu.be 포함)
+          if (data.youtubeUrl && data.youtubeUrl.trim() !== '' &&
+              (data.youtubeUrl.includes('youtube.com') || data.youtubeUrl.includes('youtu.be'))) {
+            cctvArray.push({
+              id: doc.id,
+              youtubeUrl: data.youtubeUrl,
+              title: data.title,
+              apiKey: data.apiKey || '',
+              direction: data.direction,
+              keywords: data.keywords || [],
+              latitude: data.latitude,
+              longitude: data.longitude,
+            } as WeatherSource);
+          }
         });
         setCCTVs(cctvArray);
         setIsLoading(false);
@@ -116,11 +120,16 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* 영상 플레이어 (왼쪽 2/3) */}
             <div className="lg:col-span-2">
-              <div className="bg-white shadow-md rounded-lg overflow-hidden" style={{ height: '600px' }}>
-                <YouTubePlayer
-                  videoUrl={selectedCCTV.youtubeUrl}
-                  title={selectedCCTV.title}
-                />
+              <div className="bg-white shadow-md rounded-lg overflow-hidden">
+                {/* 모바일: 16:9 비율 유지, 데스크톱: 고정 높이 */}
+                <div className="relative w-full" style={{ paddingBottom: '56.25%', height: '0' }}>
+                  <div className="absolute inset-0 lg:static lg:h-[600px]">
+                    <YouTubePlayer
+                      videoUrl={selectedCCTV.youtubeUrl}
+                      title={selectedCCTV.title}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
