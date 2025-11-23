@@ -389,7 +389,7 @@ You are an AI data assistant for Jeju DB, a Jeju travel platform. Your goal is t
         if (!jsonText) {
             throw new Error("API returned an empty response.");
         }
-        
+
         return JSON.parse(jsonText) as Partial<Place>;
 
     } catch (error) {
@@ -589,20 +589,36 @@ export const scoreCandidateSpots = async (
     filterRequest: ItineraryFilterRequest
 ): Promise<SpotScore[]> => {
 
-    // 스팟 정보 요약 생성
-    const spotsInfo = candidateSpots.map(spot => ({
-        place_id: spot.place_id,
-        place_name: spot.place_name,
-        interest_tags: spot.interest_tags || [],
-        trend: spot.trend_info?.trend_status || '정보없음',
-        popularity: spot.trend_info?.popularity_level || '정보없음',
-        targetAudience: spot.attributes?.targetAudience || [],
-        priceRange: spot.category_specific_info?.priceRange || '정보없음',
-        operating_hours: spot.public_info?.operating_hours || '정보없음',
-        closed_days: spot.public_info?.closed_days || []
-    }));
+    // 배치 처리 설정
+    // 배치 처리 설정
+    const BATCH_SIZE = 10; // 한 번에 처리할 스팟 개수 (토큰 제한 고려)
+    const DELAY_MS = 3000; // 배치 간 대기 시간 (3초)
 
-    const prompt = `
+    const allScores: SpotScore[] = [];
+    const totalBatches = Math.ceil(candidateSpots.length / BATCH_SIZE);
+
+    console.log(`🚀 스팟 점수 매기기 시작: 총 ${candidateSpots.length}개 스팟, ${totalBatches}개 배치로 나누어 처리합니다.`);
+
+    for (let i = 0; i < candidateSpots.length; i += BATCH_SIZE) {
+        const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+        const batchSpots = candidateSpots.slice(i, i + BATCH_SIZE);
+
+        console.log(`📦 배치 ${batchNumber}/${totalBatches} 처리 중 (${batchSpots.length}개)...`);
+
+        // 스팟 정보 요약 생성
+        const spotsInfo = batchSpots.map(spot => ({
+            place_id: spot.place_id,
+            place_name: spot.place_name,
+            interest_tags: spot.interest_tags || [],
+            trend: spot.trend_info?.trend_status || '정보없음',
+            popularity: spot.trend_info?.popularity_level || '정보없음',
+            targetAudience: spot.attributes?.targetAudience || [],
+            priceRange: spot.category_specific_info?.priceRange || '정보없음',
+            operating_hours: spot.public_info?.operating_hours || '정보없음',
+            closed_days: spot.public_info?.closed_days || []
+        }));
+
+        const prompt = `
 # ROLE & GOAL
 당신은 제주도 여행 일정 AI 전문가입니다. 사용자의 여행 조건에 맞춰 후보 스팟들에 관련성 점수를 부여해주세요.
 
@@ -650,26 +666,40 @@ ${JSON.stringify(spotsInfo, null, 2)}
 JSON 형식으로 각 스팟의 점수와 이유를 반환하세요.
 `;
 
-    try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: spotScoringSchema,
-            },
-        });
+        try {
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: spotScoringSchema,
+                },
+            });
 
-        const jsonText = response.text.trim();
-        if (!jsonText) {
-            throw new Error("AI에서 점수 응답을 받지 못했습니다.");
+            const jsonText = response.text.trim();
+            if (!jsonText) {
+                console.warn(`⚠️ 배치 ${batchNumber}에서 빈 응답을 받았습니다.`);
+                continue;
+            }
+
+            const result = JSON.parse(jsonText);
+            if (result.scores && Array.isArray(result.scores)) {
+                allScores.push(...result.scores);
+            }
+
+        } catch (error) {
+            console.error(`❌ 배치 ${batchNumber} 처리 중 오류 발생:`, error);
+            // 에러가 발생해도 전체 프로세스를 중단하지 않고 다음 배치로 진행
+            // 필요시 재시도 로직 추가 가능
         }
 
-        const result = JSON.parse(jsonText);
-        return result.scores as SpotScore[];
-
-    } catch (error) {
-        console.error("스팟 점수 매기기 오류:", error);
-        throw new Error("AI 스팟 점수 매기기에 실패했습니다.");
+        // 마지막 배치가 아니면 대기
+        if (batchNumber < totalBatches) {
+            console.log(`⏳ 쿼터 제한 방지를 위해 ${DELAY_MS / 1000}초 대기...`);
+            await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+        }
     }
+
+    console.log(`✅ 스팟 점수 매기기 완료: 총 ${allScores.length}개 점수 산출됨`);
+    return allScores;
 };

@@ -28,29 +28,29 @@ interface ContentLibraryProps {
 const STATUS_OPTIONS = ['draft', 'published', 'rejected', 'stub'];
 
 const StatusBadge: React.FC<{ status: Place['status']; onClick?: () => void }> = ({ status, onClick }) => {
-    const styleMap: { [key in Place['status']]: string } = {
-        draft: 'bg-yellow-100 text-yellow-800',
-        published: 'bg-green-100 text-green-800',
-        rejected: 'bg-red-100 text-red-800',
-        stub: 'bg-gray-100 text-gray-800',
-    };
+  const styleMap: { [key in Place['status']]: string } = {
+    draft: 'bg-yellow-100 text-yellow-800',
+    published: 'bg-green-100 text-green-800',
+    rejected: 'bg-red-100 text-red-800',
+    stub: 'bg-gray-100 text-gray-800',
+  };
 
-    const baseClasses = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500';
-    const clickableClasses = onClick ? ' cursor-pointer hover:opacity-80 transition-opacity' : '';
+  const baseClasses = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500';
+  const clickableClasses = onClick ? ' cursor-pointer hover:opacity-80 transition-opacity' : '';
 
-    if (onClick) {
-        return (
-            <button onClick={onClick} className={`${baseClasses} ${styleMap[status]} ${clickableClasses}`}>
-                {status}
-            </button>
-        );
-    }
-
+  if (onClick) {
     return (
-        <span className={`${baseClasses} ${styleMap[status]}`}>
-            {status}
-        </span>
+      <button onClick={onClick} className={`${baseClasses} ${styleMap[status]} ${clickableClasses}`}>
+        {status}
+      </button>
     );
+  }
+
+  return (
+    <span className={`${baseClasses} ${styleMap[status]}`}>
+      {status}
+    </span>
+  );
 };
 
 
@@ -64,6 +64,8 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ spots, news, onAddNew, 
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [deleteConfirmSpot, setDeleteConfirmSpot] = useState<Place | null>(null);
   const [orooms, setOrooms] = useState<OroomData[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
   // 오름 데이터 실시간 구독
   useEffect(() => {
@@ -93,7 +95,7 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ spots, news, onAddNew, 
     let filtered = spots;
 
     if (searchTerm) {
-      filtered = filtered.filter(spot => 
+      filtered = filtered.filter(spot =>
         spot.place_name.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
@@ -101,39 +103,65 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ spots, news, onAddNew, 
       filtered = filtered.filter(spot => spot.region === regionFilter);
     }
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter(spot => spot.categories?.includes(categoryFilter));
+      const categoryMap: Record<string, string[]> = {
+        '식당': ['식당', 'Restaurant'],
+        '카페': ['카페', 'Restaurant'],
+        '관광지': ['관광지', 'Attraction'],
+        '숙소': ['숙소', 'Accommodation'],
+        '쇼핑': ['쇼핑', 'Shopping'],
+        '축제 및 행사': ['축제 및 행사', 'Festival'],
+      };
+      const searchCategories = categoryMap[categoryFilter] || [categoryFilter];
+      filtered = filtered.filter(spot =>
+        spot.categories?.some(cat =>
+          searchCategories.some(search => cat.includes(search))
+        )
+      );
     }
     if (statusFilter !== 'all') {
-        filtered = filtered.filter(spot => spot.status === statusFilter);
+      filtered = filtered.filter(spot => spot.status === statusFilter);
     }
 
     const sorted = [...filtered].sort((a, b) => {
-        const aVal = a[sortConfig.key];
-        const bVal = b[sortConfig.key];
+      const aVal = a[sortConfig.key];
+      const bVal = b[sortConfig.key];
 
-        if (sortConfig.key === 'updated_at' || sortConfig.key === 'created_at') {
-            const aTime = aVal ? (aVal as any).seconds : 0;
-            const bTime = bVal ? (bVal as any).seconds : 0;
-            if (aTime < bTime) return sortConfig.direction === 'asc' ? -1 : 1;
-            if (aTime > bTime) return sortConfig.direction === 'asc' ? 1 : -1;
-            return 0;
-        }
-
-        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      if (sortConfig.key === 'updated_at' || sortConfig.key === 'created_at') {
+        const aTime = aVal ? (aVal as any).seconds : 0;
+        const bTime = bVal ? (bVal as any).seconds : 0;
+        if (aTime < bTime) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aTime > bTime) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
+      }
+
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
     });
 
     return sorted;
   }, [spots, searchTerm, categoryFilter, statusFilter, regionFilter, sortConfig]);
 
+
+
+  // 페이지네이션 계산
+  const totalPages = Math.ceil(filteredAndSortedSpots.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentPageSpots = filteredAndSortedSpots.slice(startIndex, endIndex);
+
+  // 필터 변경 시 첫 페이지로 이동
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, categoryFilter, statusFilter, regionFilter]);
+
   const handleSort = (key: keyof Place) => {
     setSortConfig(prev => ({
-        key,
-        direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+      key,
+      direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
     }));
   };
-  
+
   const getSortIcon = (key: keyof Place) => {
     if (sortConfig.key !== key) return '↕';
     return sortConfig.direction === 'desc' ? '↓' : '↑';
@@ -148,172 +176,239 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ spots, news, onAddNew, 
       />
 
       <Card>
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <h2 className="text-2xl font-bold text-gray-800">콘텐츠 라이브러리</h2>
-        <div className="flex items-center gap-2 flex-wrap justify-end gap-y-2">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+          <h2 className="text-2xl font-bold text-gray-800">콘텐츠 라이브러리</h2>
+          <div className="flex items-center gap-2 flex-wrap justify-end gap-y-2">
             {/* 지도/리스트 전환 버튼 */}
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('list')}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  viewMode === 'list'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${viewMode === 'list'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+                  }`}
               >
                 📋 리스트
               </button>
               <button
                 onClick={() => setViewMode('map')}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  viewMode === 'map'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${viewMode === 'map'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+                  }`}
               >
                 🗺️ 지도
               </button>
             </div>
 
             <Button
-                onClick={onOpenWeatherChat}
-                className="bg-red-500 text-white hover:bg-red-600 focus:ring-red-400"
+              onClick={onOpenWeatherChat}
+              className="bg-red-500 text-white hover:bg-red-600 focus:ring-red-400"
             >
-                📹 CCTV 목록 관리
+              📹 CCTV 목록 관리
             </Button>
             <Button
-                onClick={() => window.location.href = '/cctv'}
-                className="bg-purple-500 text-white hover:bg-purple-600 focus:ring-purple-400"
+              onClick={() => window.location.href = '/cctv'}
+              className="bg-purple-500 text-white hover:bg-purple-600 focus:ring-purple-400"
             >
-                🎥 라이브 CCTV 보기
+              🎥 라이브 CCTV 보기
             </Button>
             <Button
-                onClick={onOpenTripPlanner}
-                className="bg-teal-500 text-white hover:bg-teal-600 focus:ring-teal-400"
+              onClick={onOpenTripPlanner}
+              className="bg-teal-500 text-white hover:bg-teal-600 focus:ring-teal-400"
             >
-                📅 여행일정AI
+              📅 여행일정AI
             </Button>
             <Button
-                onClick={() => onOpenOroomDB && onOpenOroomDB()}
-                className="bg-green-500 text-white hover:bg-green-600 focus:ring-green-400"
+              onClick={() => onOpenOroomDB && onOpenOroomDB()}
+              className="bg-green-500 text-white hover:bg-green-600 focus:ring-green-400"
             >
-                🏔️ 오름DB
+              🏔️ 오름DB
             </Button>
-            
-            <div className="flex items-center gap-2 border-l border-gray-300 pl-4 ml-2">
-                <Button onClick={() => setIsExportModalOpen(true)} variant="secondary">내보내기</Button>
-                <Button onClick={onAddNew}>+ 새 스팟 추가</Button>
-                <Button
-                  onClick={onAddEvent}
-                  className="bg-purple-500 text-white hover:bg-purple-600 focus:ring-purple-400"
-                >
-                  🎉 축제 및 행사
-                </Button>
-                <Button
-                  onClick={onAddNews}
-                  className="bg-orange-500 text-white hover:bg-orange-600 focus:ring-orange-400"
-                >
-                  📰 최신 소식
-                </Button>
-            </div>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
-         <Input
+            <div className="flex items-center gap-2 border-l border-gray-300 pl-4 ml-2">
+              <Button onClick={() => setIsExportModalOpen(true)} variant="secondary">내보내기</Button>
+              <Button onClick={onAddNew}>+ 새 스팟 추가</Button>
+              <Button
+                onClick={onAddEvent}
+                className="bg-purple-500 text-white hover:bg-purple-600 focus:ring-purple-400"
+              >
+                🎉 축제 및 행사
+              </Button>
+              <Button
+                onClick={onAddNews}
+                className="bg-orange-500 text-white hover:bg-orange-600 focus:ring-orange-400"
+              >
+                📰 최신 소식
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
+          <Input
             label="이름으로 검색"
             placeholder="스팟 이름 검색..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
-         <div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">지역 필터</label>
             <select value={regionFilter} onChange={e => setRegionFilter(e.target.value)} className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                <option value="all">모든 지역</option>
-                {REGIONS.map(group => (
-                    <optgroup key={group.label} label={group.label}>
-                        {group.options.map(option => (
-                            <option key={option} value={option}>{option}</option>
-                        ))}
-                    </optgroup>
-                ))}
+              <option value="all">모든 지역</option>
+              {REGIONS.map(group => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.options.map(option => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
-         </div>
-         <div>
+          </div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">카테고리 필터</label>
             <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                <option value="all">모든 카테고리</option>
-                {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              <option value="all">모든 카테고리</option>
+              {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
             </select>
-         </div>
-         <div>
+          </div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">상태 필터</label>
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                <option value="all">모든 상태</option>
-                {STATUS_OPTIONS.map(stat => <option key={stat} value={stat}>{stat}</option>)}
+              <option value="all">모든 상태</option>
+              {STATUS_OPTIONS.map(stat => <option key={stat} value={stat}>{stat}</option>)}
             </select>
-         </div>
-      </div>
+          </div>
+        </div>
 
-      {/* 뷰 모드에 따른 조건부 렌더링 */}
-      {viewMode === 'map' ? (
-        <div className="mb-6">
-          <GoogleMapView
-            spots={filteredAndSortedSpots}
-            orooms={orooms}
-            onSpotClick={onView}
-            height="500px"
-          />
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('place_name')}>스팟 이름 {getSortIcon('place_name')}</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">카테고리</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('updated_at')}>최종 수정일 {getSortIcon('updated_at')}</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">액션</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredAndSortedSpots.length > 0 ? filteredAndSortedSpots.map(spot => (
-              <tr key={spot.place_id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {spot.region && <span className="text-gray-500 font-normal mr-2">[{spot.region}]</span>}
-                  <button onClick={() => onView(spot)} className="text-left text-indigo-600 hover:text-indigo-900 hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded">
-                    {spot.place_name}
-                  </button>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {(spot.categories || []).map(cat => (
-                        <span key={cat} className="mr-1 mb-1 px-2 py-1 text-xs font-semibold bg-indigo-100 text-indigo-800 rounded-full">{cat}</span>
-                    ))}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <StatusBadge 
-                      status={spot.status} 
-                      onClick={(spot.status === 'draft' || spot.status === 'stub') ? () => onEdit(spot) : undefined}
-                    />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{spot.updated_at ? new Date((spot.updated_at as any).seconds * 1000).toLocaleString() : 'N/A'}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                  <Button onClick={() => onEdit(spot)} variant="secondary" size="normal">수정</Button>
-                  <Button onClick={() => handleDeleteClick(spot)} variant="secondary" size="normal" className="bg-red-500 text-white hover:bg-red-600 focus:ring-red-400">삭제</Button>
-                </td>
-              </tr>
-            )) : (
+        {/* 뷰 모드에 따른 조건부 렌더링 */}
+        {viewMode === 'map' ? (
+          <div className="mb-6">
+            <GoogleMapView
+              spots={filteredAndSortedSpots}
+              orooms={orooms}
+              onSpotClick={onView}
+              height="500px"
+            />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
                 <tr>
-                    <td colSpan={5} className="text-center py-10 text-gray-500">
-                        {spots.length === 0 ? "아직 등록된 스팟이 없습니다. 첫 스팟을 추가해보세요!" : "검색 조건에 맞는 스팟이 없습니다."}
-                    </td>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('place_name')}>스팟 이름 {getSortIcon('place_name')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">카테고리</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('updated_at')}>최종 수정일 {getSortIcon('updated_at')}</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">액션</th>
                 </tr>
-            )}
-          </tbody>
-        </table>
-        </div>
-      )}
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {currentPageSpots.length > 0 ? currentPageSpots.map(spot => (
+                  <tr key={spot.place_id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {spot.region && <span className="text-gray-500 font-normal mr-2">[{spot.region}]</span>}
+                      <button onClick={() => onView(spot)} className="text-left text-indigo-600 hover:text-indigo-900 hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded">
+                        {spot.place_name}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {(spot.categories || []).map(cat => (
+                        <span key={cat} className="mr-1 mb-1 px-2 py-1 text-xs font-semibold bg-indigo-100 text-indigo-800 rounded-full">{cat}</span>
+                      ))}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <StatusBadge
+                        status={spot.status}
+                        onClick={(spot.status === 'draft' || spot.status === 'stub') ? () => onEdit(spot) : undefined}
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{spot.updated_at ? new Date((spot.updated_at as any).seconds * 1000).toLocaleString() : 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                      <Button onClick={() => onEdit(spot)} variant="secondary" size="normal">수정</Button>
+                      <Button onClick={() => handleDeleteClick(spot)} variant="secondary" size="normal" className="bg-red-500 text-white hover:bg-red-600 focus:ring-red-400">삭제</Button>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={5} className="text-center py-10 text-gray-500">
+                      {spots.length === 0 ? "아직 등록된 스팟이 없습니다. 첫 스팟을 추가해보세요!" : "검색 조건에 맞는 스팟이 없습니다."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* 페이지네이션 */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                이전
+              </button>
+              <span className="text-sm text-gray-700">
+                {startIndex + 1}-{Math.min(endIndex, filteredAndSortedSpots.length)} / {filteredAndSortedSpots.length}
+              </span>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                다음
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  총 <span className="font-medium">{filteredAndSortedSpots.length}</span>개 중{' '}
+                  <span className="font-medium">{startIndex + 1}</span>-
+                  <span className="font-medium">{Math.min(endIndex, filteredAndSortedSpots.length)}</span> 표시
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    이전
+                  </button>
+                  {/* 간단한 페이지네이션: 현재 페이지 주변만 표시하거나, 여기서는 단순하게 10개까지만 표시하고 ... 처리 */}
+                  {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === pageNum
+                          ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  {totalPages > 10 && <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">...</span>}
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    다음
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        )}
       </Card>
 
       <ExportModal

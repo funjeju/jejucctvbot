@@ -162,6 +162,7 @@ export interface Place {
   creator_id?: string;
   status: 'draft' | 'published' | 'rejected' | 'stub';
   categories?: string[];
+  categories_kr?: string[];  // 한글 카테고리 ["카페", "맛집", "관광지"]
   address?: string | null;
   region?: string | null;
   location?: Geopoint | null;
@@ -195,6 +196,9 @@ export interface Place {
 
   // 최신 업데이트 정보 (뉴스 연계)
   latest_updates?: LatestUpdate[] | null;
+
+  // 데이터 완성도 표시
+  data_completeness?: 'full' | 'partial' | 'basic';  // full: 모든 상세 필드, partial: 일부, basic: 기본만
 
   // For collaboration and versioning
   suggestions?: Record<string, Suggestion[]>;

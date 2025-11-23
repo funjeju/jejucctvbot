@@ -323,8 +323,13 @@ You are a friendly AI guide for Jeju Island live CCTV chat. All your responses, 
 **제공 가능한 기능:**
 1. **chat** - 인사, 일반 대화, 감사 인사, 도움말 요청
 2. **weather** - 날씨 관련 질문 (실시간 기상청 API 사용)
-3. **guide** - 관광지, 맛집, 카페, 숙소, 명소 등 제주 여행 정보 (데이터베이스 검색)
+3. **guide** - 관광지, 맛집, 카페, 숙소, 명소 등 제주 여행 정보 (현재 5,000개 이상의 맛집/카페/관광지 데이터 보유)
 4. **nearby** - 주변 명소 추천 (사용자 위치 우선, 없으면 CCTV 위치 기준)
+
+**데이터베이스 정보:**
+- 현재 시스템에는 제주도 전역의 **맛집(Restaurant), 카페(Cafe), 관광지(Attraction), 숙소(Accommodation)** 데이터가 5,000개 이상 탑재되어 있습니다.
+- 사용자가 맛집이나 카페를 찾으면 **반드시** 'guide' 또는 'nearby' 액션을 사용하여 데이터를 검색하세요.
+- "데이터가 없다"고 말하지 마세요. 검색 결과가 없을 수는 있어도, 기능 자체는 존재합니다.
 
 **응답 형식 (반드시 JSON만 출력):**
 \`\`\`json
@@ -427,17 +432,34 @@ CCTV GPS: ${cctv.latitude}, ${cctv.longitude}`;
 
         console.log(`[AI 검색] 카테고리: ${category}, 키워드: "${searchQuery}", 의도: "${userIntent}"`);
 
-        // 카테고리별 필터링
+        // 카테고리별 필터링 (한글/영문 모두 지원)
         let candidateSpots = spots.filter(spot => {
           if (category === '전체') return true;
           // 오름 카테고리는 spots에서 제외 (orooms만 사용)
           if (category === '오름') return false;
-          return spot.categories?.some(cat => cat.includes(category)) ||
-            (category === '맛집' && spot.categories?.some(cat => cat.includes('음식점') || cat.includes('식당') || cat.includes('한식') || cat.includes('중식') || cat.includes('일식') || cat.includes('양식'))) ||
-            (category === '카페' && spot.categories?.some(cat => cat.includes('카페') || cat.includes('디저트') || cat.includes('베이커리')));
+
+          // 영문 카테고리 매핑
+          const categoryMap: Record<string, string[]> = {
+            '맛집': ['Restaurant', '음식점', '식당', '한식', '중식', '일식', '양식', '맛집'],
+            '카페': ['Restaurant', '카페', '디저트', '베이커리'], // Visit Jeju에서 카페도 Restaurant로 분류될 수 있음
+            '관광지': ['Attraction', '관광지', '명소'],
+            '숙소': ['Accommodation', '숙소', '호텔'],
+          };
+
+          const searchCategories = categoryMap[category] || [category];
+          return spot.categories?.some(cat =>
+            searchCategories.some(search => cat.includes(search))
+          );
         });
 
         let candidateOrooms = (category === '오름' || category === '전체') ? orooms : [];
+
+        // 디버그 로그
+        console.log(`[AI 검색 디버그] 전체 spots: ${spots.length}개`);
+        console.log(`[AI 검색 디버그] 필터된 candidateSpots: ${candidateSpots.length}개`);
+        if (candidateSpots.length > 0) {
+          console.log(`[AI 검색 디버그] 첫 번째 spot 카테고리:`, candidateSpots[0].categories);
+        }
 
         // 검색어가 있으면 AI에게 의미론적 매칭 요청
         if (searchQuery.length > 0 && (candidateSpots.length > 0 || candidateOrooms.length > 0)) {
@@ -639,11 +661,20 @@ ${candidateOrooms.slice(0, 10).map((oroom, idx) =>
 
             if (!isNearby) return false;
 
-            // 카테고리 필터
+            // 카테고리 필터 (한글/영문 모두 지원)
             if (category === '전체') return true;
-            return spot.categories?.some(cat => cat.includes(category)) ||
-              (category === '맛집' && spot.categories?.some(cat => cat.includes('음식점'))) ||
-              (category === '카페' && spot.categories?.some(cat => cat.includes('카페')));
+
+            const categoryMap: Record<string, string[]> = {
+              '맛집': ['Restaurant', '음식점', '식당', '한식', '중식', '일식', '양식', '맛집'],
+              '카페': ['Restaurant', '카페', '디저트', '베이커리'],
+              '관광지': ['Attraction', '관광지', '테마파크', '문화시설', '오름'],
+              '숙소': ['Accommodation', '숙소', '호텔', '펜션', '리조트'],
+            };
+
+            const searchCategories = categoryMap[category] || [category];
+            return spot.categories?.some(cat =>
+              searchCategories.some(search => cat.includes(search))
+            );
           }).slice(0, 5);
 
           if (nearbySpots.length > 0) {
