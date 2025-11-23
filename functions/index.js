@@ -6,9 +6,8 @@ const admin = require('firebase-admin');
 
 admin.initializeApp();
 
-// databuilder 데이터베이스 사용 (named database)
-const { getFirestore } = require('firebase-admin/firestore');
-const db = getFirestore(admin.app(), 'databuilder');
+// 기본 Firestore 데이터베이스 사용 (채팅이 저장되는 곳)
+const db = admin.firestore();
 
 // HLS 프록시 함수
 exports.proxyHls = onRequest((req, res) => {

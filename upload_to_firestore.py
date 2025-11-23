@@ -166,6 +166,9 @@ def convert_visitjeju_to_place(item):
     if item.get('repPhoto') and item['repPhoto'].get('photoid'):
         img_path = item['repPhoto']['photoid'].get('imgpath')
         if img_path:
+            # Visit Jeju API URL 오타 수정 (visitjejeju → visitjeju)
+            img_path = img_path.replace('visitjejeju.net', 'visitjeju.net')
+            
             images.append({
                 'url': img_path,
                 'caption': item.get('title', '')

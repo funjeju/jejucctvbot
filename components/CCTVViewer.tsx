@@ -9,6 +9,8 @@ import Navigation from './Navigation';
 import DoodleInputModal from './DoodleInputModal';
 import DoodleOverlay from './DoodleOverlay';
 import ChatArchiveBoard from './ChatArchiveBoard';
+import TripPlannerModal from './TripPlannerModal';
+import Chatbot from './Chatbot';
 import { collection, query, onSnapshot, addDoc, deleteDoc, doc, where, Timestamp } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -74,6 +76,8 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
   const [currentPage, setCurrentPage] = useState<'feed' | 'cam' | 'tips' | 'mypage'>('cam');
   const [doodlesByVideo, setDoodlesByVideo] = useState<Record<string, Doodle[]>>({});
   const [isDoodleModalOpen, setIsDoodleModalOpen] = useState(false);
+  const [isTripPlannerOpen, setIsTripPlannerOpen] = useState(false);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [sessionId] = useState(() => {
     // 세션 ID 생성 또는 불러오기
     let id = sessionStorage.getItem('doodleSessionId');
@@ -577,7 +581,7 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
               {/* AI 여행일정 버튼 */}
               <button
                 className="w-full bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition-shadow"
-                onClick={() => alert('AI 여행일정 기능 준비 중입니다.')}
+                onClick={() => setIsTripPlannerOpen(true)}
               >
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -598,7 +602,7 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
               {/* AI 여행가이드 버튼 */}
               <button
                 className="w-full bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition-shadow"
-                onClick={() => alert('AI 여행가이드 기능 준비 중입니다.')}
+                onClick={() => setIsChatbotOpen(true)}
               >
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -631,6 +635,31 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
         isOpen={isDoodleModalOpen}
         onClose={() => setIsDoodleModalOpen(false)}
         onSubmit={handleAddDoodle}
+      />
+
+      {/* AI 여행일정 모달 */}
+      <TripPlannerModal
+        isOpen={isTripPlannerOpen}
+        onClose={() => setIsTripPlannerOpen(false)}
+        spots={spots}
+        orooms={orooms}
+      />
+
+      {/* AI 여행가이드 챗봇 */}
+      <Chatbot
+        isOpen={isChatbotOpen}
+        onClose={() => setIsChatbotOpen(false)}
+        spots={spots}
+        orooms={orooms}
+        news={news}
+        onNavigateToSpot={(placeId) => {
+          // 스팟 상세 페이지로 이동하는 로직 (필요시 구현)
+          console.log('Navigate to spot:', placeId);
+        }}
+        onOpenNews={(newsId) => {
+          // 뉴스 열기 로직 (필요시 구현)
+          console.log('Open news:', newsId);
+        }}
       />
     </div>
   );

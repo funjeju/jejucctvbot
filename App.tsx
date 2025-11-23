@@ -34,24 +34,24 @@ type AppStep = 'library' | 'category' | 'initial' | 'event' | 'news' | 'loading'
 // Utility to set a value in a nested object using a string path
 // This is a simplified version and might not cover all edge cases like lodash.set
 const setValueByPath = (obj: any, path: string, value: any) => {
-    const keys = path.replace(/\[(\w+)\]/g, '.$1').split('.');
-    let current = obj;
-    for (let i = 0; i < keys.length - 1; i++) {
-        const key = keys[i];
-        if (typeof current[key] === 'undefined' || current[key] === null) {
-            // Check if next key is a number, to create an array or object
-            current[key] = /^\d+$/.test(keys[i + 1]) ? [] : {};
-        }
-        current = current[key];
+  const keys = path.replace(/\[(\w+)\]/g, '.$1').split('.');
+  let current = obj;
+  for (let i = 0; i < keys.length - 1; i++) {
+    const key = keys[i];
+    if (typeof current[key] === 'undefined' || current[key] === null) {
+      // Check if next key is a number, to create an array or object
+      current[key] = /^\d+$/.test(keys[i + 1]) ? [] : {};
     }
-    current[keys[keys.length - 1]] = value;
-    return obj;
+    current = current[key];
+  }
+  current[keys[keys.length - 1]] = value;
+  return obj;
 };
 
-const ChatbotIcon: React.FC<{className?: string}> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9.4 12.4h-2v-2h2v2zm3.2 0h-2v-2h2v2zm3.2 0h-2v-2h2v2z" />
-    </svg>
+const ChatbotIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9.4 12.4h-2v-2h2v2zm3.2 0h-2v-2h2v2zm3.2 0h-2v-2h2v2z" />
+  </svg>
 );
 
 const App: React.FC = () => {
@@ -60,7 +60,7 @@ const App: React.FC = () => {
   const [spots, setSpots] = useState<Place[]>([]);
   const [step, setStep] = useState<AppStep>('library');
   const [dataToEdit, setDataToEdit] = useState<Place | null>(null);
-  const [categoryFormData, setCategoryFormData] = useState<{spotName: string, categories: string[]} | null>(null);
+  const [categoryFormData, setCategoryFormData] = useState<{ spotName: string, categories: string[] } | null>(null);
   const [spotToView, setSpotToView] = useState<Place | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -77,7 +77,7 @@ const App: React.FC = () => {
   const [isLoadingOrooms, setIsLoadingOrooms] = useState(true);
   const [isNewsFeedOpen, setIsNewsFeedOpen] = useState(false);
   const [newsToEdit, setNewsToEdit] = useState<NewsItem | null>(null);
-// 스팟 데이터 실시간 리스너
+  // 스팟 데이터 실시간 리스너
   useEffect(() => {
     console.log('Firestore 실시간 리스너 설정 중...');
     const q = query(collection(db, "spots"));
@@ -185,7 +185,7 @@ const App: React.FC = () => {
       const generatedData = await generateDraft(formData);
       const now = Date.now() / 1000;
       const timestamp = { seconds: now, nanoseconds: 0 };
-      
+
       const defaultAttributes = {
         targetAudience: [],
         recommendedSeasons: [],
@@ -239,7 +239,7 @@ const App: React.FC = () => {
     setIsDataSaved(false);
     setIsModalOpen(true);
   };
-  
+
   const handleGoBack = useCallback(() => {
     if (step === 'review') {
       // Check if this is an event, return to event form
@@ -256,8 +256,8 @@ const App: React.FC = () => {
       setNewsToEdit(null);
       setStep('library');
     } else if (step === 'view') {
-        setSpotToView(null);
-        setStep('library');
+      setSpotToView(null);
+      setStep('library');
     }
   }, [step, dataToEdit]);
 
@@ -310,32 +310,32 @@ const App: React.FC = () => {
 
   // 데이터 저장 함수 (로컬 스토리지 + Firestore 백업)
   const handleSaveToFirebase = async (data: Place) => {
+    try {
+      // 로컬 상태 업데이트
+      setSpots(prevSpots => {
+        const updatedSpots = prevSpots.filter(spot => spot.place_id !== data.place_id);
+        const newSpots = [...updatedSpots, data];
+
+        // 로컬 스토리지에 저장
+        localStorage.setItem('jejuSpots', JSON.stringify(newSpots));
+
+        return newSpots;
+      });
+
+      // Firestore에도 백업 저장 시도
       try {
-        // 로컬 상태 업데이트
-        setSpots(prevSpots => {
-          const updatedSpots = prevSpots.filter(spot => spot.place_id !== data.place_id);
-          const newSpots = [...updatedSpots, data];
-
-          // 로컬 스토리지에 저장
-          localStorage.setItem('jejuSpots', JSON.stringify(newSpots));
-
-          return newSpots;
-        });
-
-        // Firestore에도 백업 저장 시도
-        try {
-          const docId = data.place_id;
-          const sanitized = sanitizePlaceForFirestore(data);
-          await setDoc(doc(db, "spots", docId), sanitized);
-          console.log('Firestore에 백업 저장 완료');
-        } catch (firestoreError) {
-          console.warn('Firestore 백업 저장 실패:', firestoreError);
-        }
-
-        console.log('데이터 저장 완료');
-      } catch (error) {
-        console.error('데이터 저장 오류:', error);
+        const docId = data.place_id;
+        const sanitized = sanitizePlaceForFirestore(data);
+        await setDoc(doc(db, "spots", docId), sanitized);
+        console.log('Firestore에 백업 저장 완료');
+      } catch (firestoreError) {
+        console.warn('Firestore 백업 저장 실패:', firestoreError);
       }
+
+      console.log('데이터 저장 완료');
+    } catch (error) {
+      console.error('데이터 저장 오류:', error);
+    }
   };
 
   // 스팟 목록 새로고침 함수
@@ -347,74 +347,74 @@ const App: React.FC = () => {
       console.log(`로컬 데이터 새로고침: ${spotsArray.length}개`);
     }
   };
-  
+
   // 날씨 소스 데이터 저장 함수 (로컬 스토리지 + Firestore 백업)
   const handleSaveWeatherSourceToFirebase = async (data: Omit<WeatherSource, 'id'> & { id?: string }) => {
+    try {
+      const id = data.id || `ws_${Date.now()}`;
+      const weatherSourceData = { ...data, id };
+
+      // 로컬 상태 업데이트
+      setWeatherSources(prevSources => {
+        const updatedSources = prevSources.filter(source => source.id !== id);
+        const newSources = [...updatedSources, weatherSourceData as WeatherSource];
+
+        // 로컬 스토리지에 저장
+        localStorage.setItem('jejuWeatherSources', JSON.stringify(newSources));
+
+        return newSources;
+      });
+
+      // Firestore에도 백업 저장 시도 (undefined 제거 후)
       try {
-        const id = data.id || `ws_${Date.now()}`;
-        const weatherSourceData = { ...data, id };
+        console.log('Firestore에 저장할 데이터:', weatherSourceData);
+        console.log('저장할 GPS 좌표:', { lat: weatherSourceData.latitude, lng: weatherSourceData.longitude });
 
-        // 로컬 상태 업데이트
-        setWeatherSources(prevSources => {
-          const updatedSources = prevSources.filter(source => source.id !== id);
-          const newSources = [...updatedSources, weatherSourceData as WeatherSource];
+        // undefined 제거를 위해 sanitizePlaceForFirestore의 deepCloneWithoutUndefined 함수 재활용
+        const sanitizedData = JSON.parse(JSON.stringify(weatherSourceData, (key, value) => {
+          return value === undefined ? null : value;
+        }));
 
-          // 로컬 스토리지에 저장
-          localStorage.setItem('jejuWeatherSources', JSON.stringify(newSources));
-
-          return newSources;
-        });
-
-        // Firestore에도 백업 저장 시도 (undefined 제거 후)
-        try {
-          console.log('Firestore에 저장할 데이터:', weatherSourceData);
-          console.log('저장할 GPS 좌표:', { lat: weatherSourceData.latitude, lng: weatherSourceData.longitude });
-
-          // undefined 제거를 위해 sanitizePlaceForFirestore의 deepCloneWithoutUndefined 함수 재활용
-          const sanitizedData = JSON.parse(JSON.stringify(weatherSourceData, (key, value) => {
-            return value === undefined ? null : value;
-          }));
-
-          await setDoc(doc(db, "weatherSources", id), sanitizedData);
-          console.log('날씨 소스 Firestore에 백업 저장 완료');
-        } catch (firestoreError) {
-          console.warn('날씨 소스 Firestore 백업 저장 실패:', firestoreError);
-          console.error('Firestore 오류 상세:', firestoreError);
-        }
-
-        console.log('날씨 소스 저장 완료');
-      } catch (error) {
-        console.error('날씨 소스 저장 오류:', error);
+        await setDoc(doc(db, "weatherSources", id), sanitizedData);
+        console.log('날씨 소스 Firestore에 백업 저장 완료');
+      } catch (firestoreError) {
+        console.warn('날씨 소스 Firestore 백업 저장 실패:', firestoreError);
+        console.error('Firestore 오류 상세:', firestoreError);
       }
+
+      console.log('날씨 소스 저장 완료');
+    } catch (error) {
+      console.error('날씨 소스 저장 오류:', error);
+    }
   };
 
   // 날씨 소스 데이터 삭제 함수 (로컬 스토리지 + Firestore)
   const handleDeleteWeatherSourceFromFirebase = async (id: string) => {
+    try {
+      // 로컬 상태 업데이트
+      setWeatherSources(prevSources => {
+        const updatedSources = prevSources.filter(source => source.id !== id);
+
+        // 로컬 스토리지에 저장
+        localStorage.setItem('jejuWeatherSources', JSON.stringify(updatedSources));
+
+        return updatedSources;
+      });
+
+      // Firestore에서도 삭제 시도
       try {
-        // 로컬 상태 업데이트
-        setWeatherSources(prevSources => {
-          const updatedSources = prevSources.filter(source => source.id !== id);
-
-          // 로컬 스토리지에 저장
-          localStorage.setItem('jejuWeatherSources', JSON.stringify(updatedSources));
-
-          return updatedSources;
-        });
-
-        // Firestore에서도 삭제 시도
-        try {
-          await deleteDoc(doc(db, "weatherSources", id));
-          console.log('날씨 소스 Firestore에서 삭제 완료');
-        } catch (firestoreError) {
-          console.warn('날씨 소스 Firestore 삭제 실패:', firestoreError);
-        }
-
-        console.log('날씨 소스 삭제 완료');
-      } catch (error) {
-        console.error('날씨 소스 삭제 오류:', error);
+        await deleteDoc(doc(db, "weatherSources", id));
+        console.log('날씨 소스 Firestore에서 삭제 완료');
+      } catch (firestoreError) {
+        console.warn('날씨 소스 Firestore 삭제 실패:', firestoreError);
       }
+
+      console.log('날씨 소스 삭제 완료');
+    } catch (error) {
+      console.error('날씨 소스 삭제 오류:', error);
+    }
   };
-  
+
   // 수정: 이미지 업로드를 처리하기 위해 함수를 async 비동기 방식으로 변경합니다.
   const handleConfirmSave = async () => {
     if (finalData) {
@@ -471,135 +471,135 @@ const App: React.FC = () => {
       comments: []
     };
     // 로컬 상태 업데이트 로직 대신 Firebase 저장 함수 호출
-    handleSaveToFirebase(newStub); 
+    handleSaveToFirebase(newStub);
     return newStub;
   };
 
-    const handleAddSuggestion = (placeId: string, fieldPath: string, content: string) => {
-        let spotForFirebase: Place | null = null;
-        setSpots(prevSpots => {
-            return prevSpots.map(spot => {
-                if (spot.place_id === placeId) {
-                    const now = { seconds: Date.now() / 1000, nanoseconds: 0 };
-                    const newSuggestion: Suggestion = {
-                        id: `sugg_${Date.now()}`,
-                        author: 'Collaborator', // Hardcoded for demo
-                        content,
-                        createdAt: now,
-                        status: 'pending',
-                    };
+  const handleAddSuggestion = (placeId: string, fieldPath: string, content: string) => {
+    let spotForFirebase: Place | null = null;
+    setSpots(prevSpots => {
+      return prevSpots.map(spot => {
+        if (spot.place_id === placeId) {
+          const now = { seconds: Date.now() / 1000, nanoseconds: 0 };
+          const newSuggestion: Suggestion = {
+            id: `sugg_${Date.now()}`,
+            author: 'Collaborator', // Hardcoded for demo
+            content,
+            createdAt: now,
+            status: 'pending',
+          };
 
-                    const updatedSuggestions = { ...(spot.suggestions || {}) };
-                    if (!updatedSuggestions[fieldPath]) {
-                        updatedSuggestions[fieldPath] = [];
-                    }
-                    updatedSuggestions[fieldPath].push(newSuggestion);
+          const updatedSuggestions = { ...(spot.suggestions || {}) };
+          if (!updatedSuggestions[fieldPath]) {
+            updatedSuggestions[fieldPath] = [];
+          }
+          updatedSuggestions[fieldPath].push(newSuggestion);
 
-                    const updatedSpot = { ...spot, suggestions: updatedSuggestions };
-                    spotForFirebase = updatedSpot;
-                    return updatedSpot;
-                }
-                return spot;
-            });
-        });
-
-        // spotToView도 업데이트 (UI 즉시 갱신을 위해)
-        if (spotForFirebase && spotToView && spotToView.place_id === placeId) {
-            setSpotToView(spotForFirebase);
+          const updatedSpot = { ...spot, suggestions: updatedSuggestions };
+          spotForFirebase = updatedSpot;
+          return updatedSpot;
         }
+        return spot;
+      });
+    });
 
-        if (spotForFirebase) {
-            handleSaveToFirebase(spotForFirebase).catch(error => {
-                console.error('Error saving suggestion to Firestore:', error);
-            });
+    // spotToView도 업데이트 (UI 즉시 갱신을 위해)
+    if (spotForFirebase && spotToView && spotToView.place_id === placeId) {
+      setSpotToView(spotForFirebase);
+    }
+
+    if (spotForFirebase) {
+      handleSaveToFirebase(spotForFirebase).catch(error => {
+        console.error('Error saving suggestion to Firestore:', error);
+      });
+    }
+  };
+
+  const handleResolveSuggestion = (placeId: string, fieldPath: string, suggestionId: string, resolution: 'accepted' | 'rejected') => {
+    let spotForFirebase: Place | null = null;
+    setSpots(prevSpots => {
+      return prevSpots.map(spot => {
+        if (spot.place_id === placeId) {
+          const suggestionsForField = spot.suggestions?.[fieldPath] || [];
+          let suggestionToResolve: Suggestion | undefined;
+
+          const updatedSuggestionsForField = suggestionsForField.map(s => {
+            if (s.id === suggestionId) {
+              suggestionToResolve = s;
+              return { ...s, status: resolution };
+            }
+            return s;
+          });
+
+          if (!suggestionToResolve) return spot;
+
+          const updatedSpot = { ...spot };
+          updatedSpot.suggestions = { ...(spot.suggestions), [fieldPath]: updatedSuggestionsForField };
+
+          if (resolution === 'accepted') {
+            const now = { seconds: Date.now() / 1000, nanoseconds: 0 };
+
+            // Get previous value (for history log)
+            const previousValue = JSON.parse(JSON.stringify(spot)); // deep copy to get value
+            const pathKeys = fieldPath.replace(/\[(\w+)\]/g, '.$1').split('.');
+            let prevValRef = previousValue;
+            for (const key of pathKeys) {
+              if (prevValRef) prevValRef = prevValRef[key];
+            }
+
+            let newValue: any = suggestionToResolve.content;
+
+            if (fieldPath === 'tags') {
+              if (typeof newValue === 'string') {
+                newValue = newValue.split(',').map(tag => tag.trim()).filter(Boolean);
+              } else if (!Array.isArray(newValue)) {
+                newValue = [];
+              }
+            } else if (fieldPath === 'expert_tip_final') {
+              const existingTip = spot.expert_tip_final || '';
+              const today = new Date();
+              const dateString = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
+              const appendix = `[${dateString} 추가된 내용]\n${suggestionToResolve.content}`;
+              newValue = existingTip ? `${existingTip}\n\n${appendix}` : appendix;
+            }
+
+            setValueByPath(updatedSpot, fieldPath, newValue);
+
+            const newLogEntry: EditLog = {
+              fieldPath,
+              previousValue: prevValRef,
+              newValue: newValue,
+              acceptedBy: 'Admin', // Hardcoded for demo
+              acceptedAt: now,
+              suggestionId,
+            };
+            updatedSpot.edit_history = [...(spot.edit_history || []), newLogEntry];
+            updatedSpot.updated_at = now;
+          }
+
+          if (spotToView?.place_id === placeId) {
+            setSpotToView(updatedSpot);
+          }
+
+          spotForFirebase = updatedSpot;
+          return updatedSpot;
         }
-    };
+        return spot;
+      });
+    });
 
-    const handleResolveSuggestion = (placeId: string, fieldPath: string, suggestionId: string, resolution: 'accepted' | 'rejected') => {
-        let spotForFirebase: Place | null = null;
-        setSpots(prevSpots => {
-            return prevSpots.map(spot => {
-                if (spot.place_id === placeId) {
-                    const suggestionsForField = spot.suggestions?.[fieldPath] || [];
-                    let suggestionToResolve: Suggestion | undefined;
+    // spotToView도 업데이트 (UI 즉시 갱신을 위해)
+    if (spotForFirebase && spotToView && spotToView.place_id === placeId) {
+      setSpotToView(spotForFirebase);
+    }
 
-                    const updatedSuggestionsForField = suggestionsForField.map(s => {
-                        if (s.id === suggestionId) {
-                            suggestionToResolve = s;
-                            return { ...s, status: resolution };
-                        }
-                        return s;
-                    });
+    if (spotForFirebase) {
+      handleSaveToFirebase(spotForFirebase).catch(error => {
+        console.error('Error updating suggestion in Firestore:', error);
+      });
+    }
+  };
 
-                    if (!suggestionToResolve) return spot;
-
-                    const updatedSpot = { ...spot };
-                    updatedSpot.suggestions = { ...(spot.suggestions), [fieldPath]: updatedSuggestionsForField };
-
-                    if (resolution === 'accepted') {
-                        const now = { seconds: Date.now() / 1000, nanoseconds: 0 };
-
-                        // Get previous value (for history log)
-                        const previousValue = JSON.parse(JSON.stringify(spot)); // deep copy to get value
-                        const pathKeys = fieldPath.replace(/\[(\w+)\]/g, '.$1').split('.');
-                        let prevValRef = previousValue;
-                        for(const key of pathKeys) {
-                            if (prevValRef) prevValRef = prevValRef[key];
-                        }
-
-                        let newValue: any = suggestionToResolve.content;
-
-                        if (fieldPath === 'tags') {
-                            if (typeof newValue === 'string') {
-                                newValue = newValue.split(',').map(tag => tag.trim()).filter(Boolean);
-                            } else if (!Array.isArray(newValue)) {
-                                newValue = [];
-                            }
-                        } else if (fieldPath === 'expert_tip_final') {
-                            const existingTip = spot.expert_tip_final || '';
-                            const today = new Date();
-                            const dateString = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
-                            const appendix = `[${dateString} 추가된 내용]\n${suggestionToResolve.content}`;
-                            newValue = existingTip ? `${existingTip}\n\n${appendix}` : appendix;
-                        }
-
-                        setValueByPath(updatedSpot, fieldPath, newValue);
-
-                        const newLogEntry: EditLog = {
-                            fieldPath,
-                            previousValue: prevValRef,
-                            newValue: newValue,
-                            acceptedBy: 'Admin', // Hardcoded for demo
-                            acceptedAt: now,
-                            suggestionId,
-                        };
-                        updatedSpot.edit_history = [...(spot.edit_history || []), newLogEntry];
-                        updatedSpot.updated_at = now;
-                    }
-
-                    if (spotToView?.place_id === placeId) {
-                        setSpotToView(updatedSpot);
-                    }
-
-                    spotForFirebase = updatedSpot;
-                    return updatedSpot;
-                }
-                return spot;
-            });
-        });
-
-        // spotToView도 업데이트 (UI 즉시 갱신을 위해)
-        if (spotForFirebase && spotToView && spotToView.place_id === placeId) {
-            setSpotToView(spotForFirebase);
-        }
-
-        if (spotForFirebase) {
-            handleSaveToFirebase(spotForFirebase).catch(error => {
-                console.error('Error updating suggestion in Firestore:', error);
-            });
-        }
-    };
-  
   const handleExitToLibrary = () => {
     setIsModalOpen(false);
     setIsDataSaved(false);
@@ -622,7 +622,7 @@ const App: React.FC = () => {
     setStep('event');
   };
 
-  const handleCategorySubmit = (data: {spotName: string, categories: string[]}) => {
+  const handleCategorySubmit = (data: { spotName: string, categories: string[] }) => {
     setCategoryFormData(data);
     setStep('initial');
   };
@@ -706,20 +706,20 @@ const App: React.FC = () => {
   const handleNavigateFromChatbot = (placeId: string) => {
     const spot = spots.find(s => s.place_id === placeId);
     if (spot) {
-        setSpotToView(spot);
-        setStep('view');
-        setIsChatbotOpen(false); // Close chatbot on navigation
+      setSpotToView(spot);
+      setStep('view');
+      setIsChatbotOpen(false); // Close chatbot on navigation
     }
   };
 
   const handleSaveWeatherSource = (data: Omit<WeatherSource, 'id'> & { id?: string }) => {
-      console.log('handleSaveWeatherSource 호출됨:', data);
-      console.log('전달된 GPS 좌표:', { lat: data.latitude, lng: data.longitude });
-      handleSaveWeatherSourceToFirebase(data);
+    console.log('handleSaveWeatherSource 호출됨:', data);
+    console.log('전달된 GPS 좌표:', { lat: data.latitude, lng: data.longitude });
+    handleSaveWeatherSourceToFirebase(data);
   };
 
   const handleDeleteWeatherSource = (id: string) => {
-      handleDeleteWeatherSourceFromFirebase(id);
+    handleDeleteWeatherSourceFromFirebase(id);
   };
 
   const handleToggleCamChat = async (id: string, showInCamChat: boolean) => {
@@ -787,33 +787,33 @@ const App: React.FC = () => {
           );
         }
         return <ContentLibrary
-                  spots={spots}
-                  news={news}
-                  onAddNew={handleStartNew}
-                  onAddEvent={handleStartEvent}
-                  onAddNews={handleStartNews}
-                  onEdit={handleEditSpot}
-                  onView={handleViewSpot}
-                  onDelete={handleDeleteSpot}
-                  onOpenWeatherChat={() => setIsWeatherChatOpen(true)}
-                  onOpenTripPlanner={() => setIsTripPlannerOpen(true)}
-                  onOpenOroomDB={() => setIsOroomDBOpen(true)}
-                  onOpenNewsFeed={() => setIsNewsFeedOpen(true)}
-                />;
+          spots={spots}
+          news={news}
+          onAddNew={handleStartNew}
+          onAddEvent={handleStartEvent}
+          onAddNews={handleStartNews}
+          onEdit={handleEditSpot}
+          onView={handleViewSpot}
+          onDelete={handleDeleteSpot}
+          onOpenWeatherChat={() => setIsWeatherChatOpen(true)}
+          onOpenTripPlanner={() => setIsTripPlannerOpen(true)}
+          onOpenOroomDB={() => setIsOroomDBOpen(true)}
+          onOpenNewsFeed={() => setIsNewsFeedOpen(true)}
+        />;
       case 'view':
         if (spotToView) {
-            // 이 스팟 관련 뉴스 필터링
-            const spotNews = news.filter(n =>
-              n.auto_apply_to_spot && n.related_spot_ids.includes(spotToView.place_id)
-            );
-            return <SpotDetailView
-                        spot={spotToView}
-                        relatedNews={spotNews}
-                        onBack={handleGoBack}
-                        onEdit={handleEditSpot}
-                        onAddSuggestion={handleAddSuggestion}
-                        onResolveSuggestion={handleResolveSuggestion}
-                    />;
+          // 이 스팟 관련 뉴스 필터링
+          const spotNews = news.filter(n =>
+            n.auto_apply_to_spot && n.related_spot_ids.includes(spotToView.place_id)
+          );
+          return <SpotDetailView
+            spot={spotToView}
+            relatedNews={spotNews}
+            onBack={handleGoBack}
+            onEdit={handleEditSpot}
+            onAddSuggestion={handleAddSuggestion}
+            onResolveSuggestion={handleResolveSuggestion}
+          />;
         }
         setStep('library');
         return null;
@@ -823,15 +823,15 @@ const App: React.FC = () => {
         return <NewsForm onSubmit={handleNewsSubmit} onBack={handleGoBack} spots={spots} initialValues={newsToEdit || undefined} />;
       case 'category': {
         const categoryInitialValues = dataToEdit ? {
-            spotName: dataToEdit.place_name,
-            categories: dataToEdit.categories || []
+          spotName: dataToEdit.place_name,
+          categories: dataToEdit.categories || []
         } : undefined;
         return <CategoryForm onSubmit={handleCategorySubmit} error={error} onBack={handleGoBack} initialValues={categoryInitialValues} />;
       }
       case 'initial': {
         const initialValues = dataToEdit ? {
-            spotDescription: dataToEdit.expert_tip_raw || '',
-            importUrl: dataToEdit.import_url || '',
+          spotDescription: dataToEdit.expert_tip_raw || '',
+          importUrl: dataToEdit.import_url || '',
         } : undefined;
         return <InitialForm
           categoryData={categoryFormData!}
@@ -863,7 +863,7 @@ const App: React.FC = () => {
         return null;
     }
   };
-  
+
   const HeaderButton = useMemo(() => {
     if (step === 'library') return null;
 
@@ -882,13 +882,13 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-gray-100 font-sans p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         <header className="flex items-center justify-between mb-8">
-            <div className="flex items-center space-x-3">
-                <KLokalLogo />
-                <h1 className="text-3xl font-bold text-gray-800 tracking-tight">
-                    Jeju DB: AI 데이터빌더
-                </h1>
-            </div>
-            {HeaderButton}
+          <div className="flex items-center space-x-3">
+            <KLokalLogo />
+            <h1 className="text-3xl font-bold text-gray-800 tracking-tight">
+              Jeju DB: AI 데이터빌더
+            </h1>
+          </div>
+          {HeaderButton}
         </header>
         <main>
           {renderContent()}
@@ -897,7 +897,7 @@ const App: React.FC = () => {
           <p>&copy; {new Date().getFullYear()} Jeju DB Project. All Rights Reserved.</p>
         </footer>
       </div>
-      
+
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -908,7 +908,7 @@ const App: React.FC = () => {
             <p className="text-gray-600">
               아래는 최종 생성된 JSON 데이터입니다. 내용을 확인 후 저장하거나, 다시 돌아가 수정할 수 있습니다.
             </p>
-            {isDataSaved && 
+            {isDataSaved &&
               <p className="mt-2 text-sm font-semibold text-green-600 bg-green-50 p-3 rounded-md">
                 ✓ 저장 완료! (브라우저 콘솔을 확인하세요)
               </p>
@@ -933,53 +933,34 @@ const App: React.FC = () => {
         </div>
       </Modal>
 
-        <button 
-            onClick={() => setIsChatbotOpen(true)}
-            className="fixed bottom-6 right-6 bg-indigo-600 text-white p-4 rounded-full shadow-lg hover:bg-indigo-700 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 z-50"
-            aria-label="Open AI Assistant"
-        >
-            <ChatbotIcon className="h-8 w-8" />
-        </button>
+      <button
+        onClick={() => setIsChatbotOpen(true)}
+        className="fixed bottom-6 right-6 bg-indigo-600 text-white p-4 rounded-full shadow-lg hover:bg-indigo-700 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 z-50"
+        onDeleteSource={handleDeleteWeatherSource}
+        onToggleCamChat={handleToggleCamChat}
+      />
 
-        <Chatbot
-            isOpen={isChatbotOpen}
-            onClose={() => setIsChatbotOpen(false)}
-            spots={spots}
-            orooms={orooms}
-            news={news}
-            onNavigateToSpot={handleNavigateFromChatbot}
-        />
+      <TripPlannerModal
+        isOpen={isTripPlannerOpen}
+        onClose={() => setIsTripPlannerOpen(false)}
+        spots={spots}
+        orooms={orooms}
+      />
 
-        <WeatherChatModal
-          isOpen={isWeatherChatOpen}
-          onClose={() => setIsWeatherChatOpen(false)}
-          weatherSources={weatherSources}
-          onSaveSource={handleSaveWeatherSource}
-          onDeleteSource={handleDeleteWeatherSource}
-          onToggleCamChat={handleToggleCamChat}
-        />
+      <OroomDBModal
+        isOpen={isOroomDBOpen}
+        onClose={() => setIsOroomDBOpen(false)}
+      />
 
-        <TripPlannerModal
-          isOpen={isTripPlannerOpen}
-          onClose={() => setIsTripPlannerOpen(false)}
-          spots={spots}
-          orooms={orooms}
-        />
-
-        <OroomDBModal
-          isOpen={isOroomDBOpen}
-          onClose={() => setIsOroomDBOpen(false)}
-        />
-
-        <NewsFeedModal
-          isOpen={isNewsFeedOpen}
-          onClose={() => setIsNewsFeedOpen(false)}
-          news={news}
-          spots={spots}
-          onAddNews={handleStartNews}
-          onEditNews={handleEditNews}
-          onDeleteNews={handleDeleteNews}
-        />
+      <NewsFeedModal
+        isOpen={isNewsFeedOpen}
+        onClose={() => setIsNewsFeedOpen(false)}
+        news={news}
+        spots={spots}
+        onAddNews={handleStartNews}
+        onEditNews={handleEditNews}
+        onDeleteNews={handleDeleteNews}
+      />
     </div>
   );
 };

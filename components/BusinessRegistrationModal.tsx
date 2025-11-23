@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { collection, addDoc, Timestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, Timestamp, doc, setDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -68,9 +68,9 @@ const BusinessRegistrationModal: React.FC<BusinessRegistrationModalProps> = ({ o
     setIsSubmitting(true);
 
     try {
-      // 1. userProfiles 컬렉션 업데이트
+      // 1. userProfiles 컬렉션 업데이트 (문서가 없으면 생성)
       const userProfileRef = doc(db, 'userProfiles', user.uid);
-      await updateDoc(userProfileRef, {
+      await setDoc(userProfileRef, {
         role: 'store',
         businessNumber: cleanedNumber,
         businessName: businessName.trim(),
@@ -78,7 +78,7 @@ const BusinessRegistrationModal: React.FC<BusinessRegistrationModalProps> = ({ o
         businessPhone: businessPhone.trim(),
         businessApproved: false, // 승인 대기 상태
         updatedAt: Timestamp.now(),
-      });
+      }, { merge: true }); // merge: true로 문서가 없으면 생성, 있으면 업데이트
 
       // 2. businessApplications 컬렉션에 신청 기록 추가
       await addDoc(collection(db, 'businessApplications'), {
