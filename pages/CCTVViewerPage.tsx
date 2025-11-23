@@ -13,6 +13,7 @@ const CCTVViewerPage: React.FC = () => {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+
   // 스팟 데이터 실시간 리스너
   useEffect(() => {
     console.log('CCTVViewerPage: Firestore 스팟 리스너 설정 중...');

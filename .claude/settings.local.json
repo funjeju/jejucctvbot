@@ -10,7 +10,20 @@
       "Bash(netstat:*)",
       "Bash(findstr:*)",
       "Bash(git add:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(npm run build:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(echo:*)",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(\"c:\\Users\\na\\Desktop\\aiproject\\jejudatachatbot\\contexts\\AuthContext.tsx\")",
+      "Bash(\"c:\\Users\\na\\Desktop\\aiproject\\jejudatachatbot\\components\\LoginModal.tsx\")",
+      "Bash(firebase functions:list:*)",
+      "Bash(firebase functions:log:*)",
+      "Bash(firebase functions:delete:*)"
     ],
     "deny": [],
     "ask": []

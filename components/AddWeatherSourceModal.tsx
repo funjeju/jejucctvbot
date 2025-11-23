@@ -16,8 +16,9 @@ interface AddWeatherSourceModalProps {
 const AddWeatherSourceModal: React.FC<AddWeatherSourceModalProps> = ({ isOpen, onClose, onSave, initialData }) => {
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [title, setTitle] = useState('');
+  const [shortTitle, setShortTitle] = useState('');
   const [apiKey, setApiKey] = useState('');
-  const [direction, setDirection] = useState<'동' | '서' | '남' | '북' | '중앙' | ''>('');
+  const [direction, setDirection] = useState<'동부' | '서부' | '남부' | '북부' | ''>('');
   const [keywords, setKeywords] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
@@ -31,6 +32,7 @@ const AddWeatherSourceModal: React.FC<AddWeatherSourceModalProps> = ({ isOpen, o
     if (isOpen && initialData) {
       setYoutubeUrl(initialData.youtubeUrl);
       setTitle(initialData.title);
+      setShortTitle(initialData.shortTitle || '');
       setApiKey(initialData.apiKey);
       setDirection(initialData.direction || '');
       setKeywords(initialData.keywords?.join(', ') || '');
@@ -41,6 +43,7 @@ const AddWeatherSourceModal: React.FC<AddWeatherSourceModalProps> = ({ isOpen, o
       // Reset when modal is closed, regardless of initialData
       setYoutubeUrl('');
       setTitle('');
+      setShortTitle('');
       setApiKey('');
       setDirection('');
       setKeywords('');
@@ -124,6 +127,7 @@ const AddWeatherSourceModal: React.FC<AddWeatherSourceModalProps> = ({ isOpen, o
       id: initialData?.id,
       youtubeUrl,
       title,
+      shortTitle: shortTitle.trim() || undefined,
       apiKey,
       direction: direction || undefined,
       keywords: keywordArray,
@@ -179,6 +183,13 @@ const AddWeatherSourceModal: React.FC<AddWeatherSourceModalProps> = ({ isOpen, o
             onChange={(e) => setTitle(e.target.value)}
             placeholder="예: 제주시 조천읍 날씨"
           />
+          <Input
+            label="모바일용 별칭 (선택)"
+            id="shortTitle"
+            value={shortTitle}
+            onChange={(e) => setShortTitle(e.target.value)}
+            placeholder="예: 조천 (모바일에서 짧게 표시될 이름)"
+          />
           <div>
             <label htmlFor="direction" className="block text-sm font-medium text-gray-700 mb-1">
               지역 방향
@@ -186,15 +197,14 @@ const AddWeatherSourceModal: React.FC<AddWeatherSourceModalProps> = ({ isOpen, o
             <select
               id="direction"
               value={direction}
-              onChange={(e) => setDirection(e.target.value as '동' | '서' | '남' | '북' | '중앙' | '')}
+              onChange={(e) => setDirection(e.target.value as '동부' | '서부' | '남부' | '북부' | '')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">방향 선택 안함</option>
-              <option value="동">동쪽</option>
-              <option value="서">서쪽</option>
-              <option value="남">남쪽</option>
-              <option value="북">북쪽</option>
-              <option value="중앙">중앙</option>
+              <option value="동부">동부</option>
+              <option value="서부">서부</option>
+              <option value="남부">남부</option>
+              <option value="북부">북부</option>
             </select>
           </div>
           <Input

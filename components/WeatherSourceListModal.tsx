@@ -9,9 +9,10 @@ interface WeatherSourceListModalProps {
   sources: WeatherSource[];
   onEdit: (source: WeatherSource) => void;
   onDelete: (id: string) => void;
+  onToggleCamChat: (id: string, showInCamChat: boolean) => void;
 }
 
-const WeatherSourceListModal: React.FC<WeatherSourceListModalProps> = ({ isOpen, onClose, sources, onEdit, onDelete }) => {
+const WeatherSourceListModal: React.FC<WeatherSourceListModalProps> = ({ isOpen, onClose, sources, onEdit, onDelete, onToggleCamChat }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="날씨 정보 소스 목록">
       <div className="space-y-3 max-h-[60vh] overflow-y-auto">
@@ -21,6 +22,15 @@ const WeatherSourceListModal: React.FC<WeatherSourceListModalProps> = ({ isOpen,
               <div className="flex-1 overflow-hidden">
                 <p className="font-semibold text-gray-800 truncate">{source.title}</p>
                 <p className="text-xs text-gray-500 truncate">{source.youtubeUrl}</p>
+                <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={source.showInCamChat || false}
+                    onChange={(e) => onToggleCamChat(source.id, e.target.checked)}
+                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  />
+                  <span className="text-xs text-gray-600">Cam & Chat 페이지에 표시</span>
+                </label>
               </div>
               <div className="flex space-x-2 ml-4 flex-shrink-0">
                 <Button onClick={() => onEdit(source)} variant="secondary" size="normal">수정</Button>

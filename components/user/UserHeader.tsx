@@ -6,11 +6,11 @@ interface UserHeaderProps {
 }
 
 const UserHeader: React.FC<UserHeaderProps> = ({ onLoginClick }) => {
-  const { currentUser, logout } = useAuth();
+  const { user, signOut } = useAuth();
 
   const handleLogout = async () => {
     try {
-      await logout();
+      await signOut();
     } catch (error) {
       console.error('로그아웃 오류:', error);
     }
@@ -28,10 +28,10 @@ const UserHeader: React.FC<UserHeaderProps> = ({ onLoginClick }) => {
         {/* 로그인 상태 표시 */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-2 text-sm">
-            {currentUser ? (
+            {user ? (
               <>
                 <span className="text-indigo-600 font-medium">
-                  {getUserName(currentUser.email)}님 환영합니다
+                  {getUserName(user.email)}님 환영합니다
                 </span>
                 <button
                   onClick={handleLogout}

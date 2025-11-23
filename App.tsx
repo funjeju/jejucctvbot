@@ -19,13 +19,15 @@ import Modal from './components/common/Modal';
 import Button from './components/common/Button';
 import { generateDraft } from './services/geminiService';
 import { KLokalLogo, WITH_KIDS_OPTIONS, WITH_PETS_OPTIONS, PARKING_DIFFICULTY_OPTIONS, ADMISSION_FEE_OPTIONS } from './constants';
-import { collection, query, onSnapshot, setDoc, doc, deleteDoc, getDocs } from "firebase/firestore";
+import { collection, query, onSnapshot, setDoc, doc, deleteDoc, getDocs, updateDoc } from "firebase/firestore";
 import { db } from './services/firebase';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { sanitizePlaceForFirestore, parsePlaceFromFirestore } from './services/placeFirestore';
 import { subscribeToNews, saveNewsItem, deleteNewsItem } from './services/newsFirestore';
 import { testWeatherAPI, getCurrentWeather, JEJU_WEATHER_STATIONS } from './services/weatherService';
 import { testCapture, captureWeatherScene } from './services/youtubeCapture';
+import { AuthProvider } from './contexts/AuthContext';
+import DebugPanel from './components/DebugPanel';
 
 type AppStep = 'library' | 'category' | 'initial' | 'event' | 'news' | 'loading' | 'review' | 'view';
 
@@ -720,6 +722,17 @@ const App: React.FC = () => {
       handleDeleteWeatherSourceFromFirebase(id);
   };
 
+  const handleToggleCamChat = async (id: string, showInCamChat: boolean) => {
+    try {
+      // Firestore 업데이트
+      const sourceRef = doc(db, "weatherSources", id);
+      await updateDoc(sourceRef, { showInCamChat });
+      console.log(`Cam & Chat 표시 설정 업데이트: ${id} -> ${showInCamChat}`);
+    } catch (error) {
+      console.error('Cam & Chat 설정 업데이트 실패:', error);
+    }
+  };
+
   // 개발 모드에서 전역 함수로 기상청 API 테스트 추가
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -943,6 +956,7 @@ const App: React.FC = () => {
           weatherSources={weatherSources}
           onSaveSource={handleSaveWeatherSource}
           onDeleteSource={handleDeleteWeatherSource}
+          onToggleCamChat={handleToggleCamChat}
         />
 
         <TripPlannerModal
@@ -970,4 +984,13 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+const AppWithAuth: React.FC = () => {
+  return (
+    <AuthProvider>
+      <App />
+      <DebugPanel />
+    </AuthProvider>
+  );
+};
+
+export default AppWithAuth;

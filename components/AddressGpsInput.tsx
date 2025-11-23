@@ -131,28 +131,36 @@ const AddressGpsInput: React.FC<AddressGpsInputProps> = ({
 
     setIsLoading(true);
 
-    const geocoder = new window.google.maps.Geocoder();
+    try {
+      const geocoder = new window.google.maps.Geocoder();
 
-    geocoder.geocode({ address: address }, (results: any, status: any) => {
-      if (status === 'OK' && results[0]) {
-        const location = results[0].geometry.location;
-        const newLocation: Geopoint = {
-          latitude: location.lat(),
-          longitude: location.lng()
-        };
+      geocoder.geocode({ address: address }, (results: any, status: any) => {
+        setIsLoading(false); // 항상 로딩 종료
 
-        onLocationChange(newLocation);
+        if (status === 'OK' && results[0]) {
+          const location = results[0].geometry.location;
+          const newLocation: Geopoint = {
+            latitude: location.lat(),
+            longitude: location.lng()
+          };
 
-        if (map) {
-          updateMapMarker(newLocation);
+          onLocationChange(newLocation);
+
+          if (map) {
+            updateMapMarker(newLocation);
+          }
+
+          alert(`GPS 좌표를 찾았습니다!\n위도: ${newLocation.latitude}\n경도: ${newLocation.longitude}`);
+        } else {
+          console.error('Geocoding 실패:', status);
+          alert(`주소를 찾을 수 없습니다. (상태: ${status})\n다시 시도해주세요.`);
         }
-
-        alert(`GPS 좌표를 찾았습니다!\n위도: ${newLocation.latitude}\n경도: ${newLocation.longitude}`);
-      } else {
-        alert('주소를 찾을 수 없습니다. 다시 시도해주세요.');
-      }
+      });
+    } catch (error) {
+      console.error('Geocoding 에러:', error);
       setIsLoading(false);
-    });
+      alert('주소 검색 중 오류가 발생했습니다.');
+    }
   };
 
   const convertCoordsToAddress = (geopoint: Geopoint) => {
@@ -169,16 +177,40 @@ const AddressGpsInput: React.FC<AddressGpsInputProps> = ({
   };
 
   const toggleMap = () => {
-    setIsMapVisible(!isMapVisible);
+    const newVisibility = !isMapVisible;
+    setIsMapVisible(newVisibility);
 
     // 지도를 새로 표시할 때 초기화
-    if (!isMapVisible) {
+    if (newVisibility) {
+      // DOM이 완전히 렌더링될 때까지 대기
       setTimeout(() => {
         const container = document.getElementById('address-map');
-        if (container && window.google?.maps) {
-          initializeMap(container as HTMLDivElement);
+
+        if (!container) {
+          console.error('지도 컨테이너를 찾을 수 없습니다');
+          return;
         }
-      }, 100);
+
+        if (!window.google?.maps) {
+          alert('Google Maps API가 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.');
+          setIsMapVisible(false);
+          return;
+        }
+
+        // 컨테이너가 실제로 화면에 표시되는지 확인
+        if (container.offsetWidth === 0 || container.offsetHeight === 0) {
+          console.error('지도 컨테이너가 화면에 표시되지 않았습니다');
+          return;
+        }
+
+        try {
+          initializeMap(container as HTMLDivElement);
+        } catch (error) {
+          console.error('지도 초기화 실패:', error);
+          alert('지도를 로드하는 중 오류가 발생했습니다.');
+          setIsMapVisible(false);
+        }
+      }, 200); // 100ms에서 200ms로 증가
     }
   };
 

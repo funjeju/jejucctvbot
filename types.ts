@@ -121,11 +121,11 @@ export interface LinkedSpot {
 }
 
 export interface PublicInfo {
-    operating_hours?: string;
-    phone_number?: string;
-    website_url?: string;
-    closed_days?: string[];
-    is_old_shop?: boolean;
+  operating_hours?: string;
+  phone_number?: string;
+  website_url?: string;
+  closed_days?: string[];
+  is_old_shop?: boolean;
 }
 
 export interface Suggestion {
@@ -137,12 +137,12 @@ export interface Suggestion {
 }
 
 export interface EditLog {
-    fieldPath: string;
-    previousValue: any;
-    newValue: any;
-    acceptedBy: string;
-    acceptedAt: Timestamp;
-    suggestionId: string;
+  fieldPath: string;
+  previousValue: any;
+  newValue: any;
+  acceptedBy: string;
+  acceptedAt: Timestamp;
+  suggestionId: string;
 }
 
 
@@ -202,21 +202,61 @@ export interface Place {
 }
 
 export interface InitialFormData {
-    categories: string[];
-    spotName: string;
-    spotDescription: string;
-    importUrl: string;
+  categories: string[];
+  spotName: string;
+  spotDescription: string;
+  importUrl: string;
 }
 
 export interface WeatherSource {
   id: string;
   youtubeUrl: string;
   title: string;
+  titleEng?: string;
+  titleChn?: string;
+  shortTitle?: string; // 모바일용 간략 별칭
   apiKey: string;
-  direction?: '동' | '서' | '남' | '북' | '중앙';
+  direction?: '동부' | '서부' | '남부' | '북부';
   keywords?: string[];
   latitude?: number;
   longitude?: number;
+  showInCamChat?: boolean; // Cam & Chat 페이지에 표시 여부
+}
+
+export interface Doodle {
+  id: string;
+  text?: string;
+  type: 'speech' | 'thought' | 'shout' | 'drawing' | 'coupon';
+  color: string;
+  createdAt: number;
+  imageData?: string; // base64 인코딩된 이미지 데이터 (drawing 타입용)
+  duration: number; // 지속 시간 (밀리초)
+  sessionId: string; // 작성자 세션 ID
+  position?: { left: number; top: number }; // 말풍선 위치 (%)
+  widthPercent?: number; // 말풍선 크기 - 화면 너비 대비 비율 (%, 기본값 15)
+
+  // 쿠폰 전용 필드
+  couponTitle?: string; // 쿠폰 제목
+  couponDescription?: string; // 쿠폰 설명
+  storeName?: string; // 매장명
+  storeAddress?: string; // 매장 주소
+  maxClaims?: number; // 최대 발급 개수
+  claimedBy?: string[]; // 쿠폰을 받아간 세션 ID 목록
+}
+
+export interface DoodleCreateData {
+  text?: string;
+  type: 'speech' | 'thought' | 'shout' | 'drawing' | 'coupon';
+  color: string;
+  imageData?: string;
+  duration: number;
+
+  // 쿠폰 전용 필드
+  couponTitle?: string;
+  couponDescription?: string;
+  storeName?: string;
+  storeAddress?: string;
+  maxClaims?: number;
 }
 
 export interface WeatherCardData {
@@ -471,6 +511,22 @@ export interface ChatMessage {
   timestamp: Timestamp;
   type: 'user' | 'ai'; // 사용자 메시지 vs AI 응답
   isSlashCommand?: boolean; // 슬래시 명령어 여부
+  replyTo?: string; // 답글 대상 메시지 ID (KakaoTalk 스타일)
+  replyToUsername?: string; // 답글 대상 사용자 닉네임
+  replyToMessage?: string; // 답글 대상 메시지 내용 (미리보기용)
+  hidden?: boolean; // 관리자에 의해 숨김 처리됨
+  deletedBy?: string; // 삭제한 관리자 ID (삭제 시)
+  pointBoxId?: string; // 포인트 박스 ID (type이 'pointbox'일 때)
+}
+
+export interface ChatArchive {
+  id: string;
+  startTime: Timestamp; // 24시간 시작 시간
+  endTime: Timestamp; // 24시간 종료 시간
+  messageCount: number; // 총 메시지 수
+  summary: string; // AI 생성 요약
+  txtFileUrl: string; // Firebase Storage txt 파일 URL
+  createdAt: Timestamp;
 }
 
 export interface CCTVChatRoom {
@@ -478,4 +534,209 @@ export interface CCTVChatRoom {
   activeUsers: number; // 현재 접속자 수
   messages: ChatMessage[]; // 최근 메시지 (최대 100개)
   lastActivity: Timestamp;
+}
+
+// Feed 관련 타입
+export interface FeedMediaExif {
+  latitude?: number;
+  longitude?: number;
+  dateTime?: string; // EXIF 날짜/시간 (포맷된 문자열)
+  rawDateTime?: string; // EXIF 원본 날짜/시간 (24시간 보너스 체크용)
+  camera?: string; // 카메라 모델
+  location?: string; // 역지오코딩된 위치 이름
+  // 상세 촬영 정보
+  fNumber?: string; // 조리개 (f/2.8)
+  iso?: number; // ISO
+  exposureTime?: string; // 셔터스피드 (1/60)
+  focalLength?: string; // 초점거리 (50mm)
+}
+
+export interface FeedMedia {
+  id: string;
+  type: 'image' | 'video';
+  url: string; // Firebase Storage URL
+  thumbnailUrl?: string; // 썸네일 URL (비디오용)
+  exif: FeedMediaExif;
+  width?: number;
+  height?: number;
+}
+
+export interface FeedComment {
+  id: string;
+  userId: string;
+  username: string;
+  content: string;
+  timestamp: Timestamp;
+}
+
+export interface FeedPost {
+  id: string;
+  userId: string;
+  username: string;
+  userAvatar?: string;
+  content: string; // 최대 300자
+  media: FeedMedia[]; // 이미지 최대 5개, 비디오 1개
+  timestamp: Timestamp;
+  createdAt: Timestamp;
+  likes: number;
+  comments: number;
+  bookmarks: number; // 찜 개수
+  likedBy?: string[]; // 좋아요 누른 사용자 ID 목록
+  bookmarkedBy?: string[]; // 찜한 사용자 ID 목록
+  commentList?: FeedComment[]; // 댓글 목록
+  feedType?: 'live' | 'cctv'; // 피드 타입
+  // GPS 기반 추천 장소
+  nearbySpots?: {
+    id: string;
+    title: string;
+    thumbnailUrl: string;
+    distance: number; // 미터 단위
+  }[];
+}
+
+// 사용자 역할 타입
+export type UserRole = 'user' | 'store' | 'admin';
+
+// 사용자 프로필 인터페이스
+export interface UserProfile {
+  uid: string; // Firebase Auth UID
+  email: string;
+  displayName?: string;
+  photoURL?: string;
+  role: UserRole; // 사용자 역할
+
+  // 매장 정보 (role이 'store'일 때)
+  businessNumber?: string; // 사업자 번호
+  businessName?: string; // 상호명
+  businessAddress?: string; // 사업장 주소
+  businessPhone?: string; // 연락처
+  businessApproved?: boolean; // 관리자 승인 여부
+  businessApprovedAt?: Timestamp; // 승인 날짜
+  businessApprovedBy?: string; // 승인한 관리자 UID
+
+  // 메타데이터
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+
+  // 통계
+  feedCount?: number; // 작성한 피드 수
+  couponIssuedCount?: number; // 발급한 쿠폰 수
+
+  // 포인트 시스템
+  points?: number; // 현재 보유 포인트
+  totalEarnedPoints?: number; // 총 획득 포인트
+  totalSpentPoints?: number; // 총 사용 포인트
+}
+
+// 포인트 로그 타입
+export type PointLogType =
+  | 'feed_photo'           // 피드 사진 등록
+  | 'feed_video'           // 피드 동영상 등록
+  | 'feed_24h_bonus'       // 24시간 내 촬영 보너스
+  | 'cctv_capture_bonus'   // CCTV 캡처 인증 보너스
+  | 'chat_pointbox'        // 채팅 포인트 박스에서 획득
+  | 'chat_award_1st'       // 채팅 우수자 1등
+  | 'chat_award_2nd'       // 채팅 우수자 2등
+  | 'chat_award_3rd'       // 채팅 우수자 3등
+  | 'point_spend'          // 포인트 사용
+  | 'admin_grant'          // 관리자 지급
+  | 'admin_deduct';        // 관리자 차감
+
+// 포인트 로그 인터페이스
+export interface PointLog {
+  id: string;
+  userId: string;
+  type: PointLogType;
+  amount: number; // 양수: 획득, 음수: 사용
+  balance: number; // 변경 후 잔액
+  description: string;
+  relatedId?: string; // 관련 피드 ID, 채팅 ID 등
+  location?: {
+    latitude: number;
+    longitude: number;
+  };
+  createdAt: Timestamp;
+}
+
+// 채팅 포인트 박스 인터페이스
+export interface PointBox {
+  id: string;
+  creatorId: string; // 생성자 UID
+  creatorName: string;
+  totalPoints: number; // 총 포인트 양
+  remainingPoints: number; // 남은 포인트
+  maxClaims: number; // 최대 수령 인원
+  claimedCount: number; // 현재 수령 인원
+  claimedBy: string[]; // 수령한 사용자 UID 목록
+  distributionType: 'equal' | 'random'; // 균등 분배 / 랜덤 분배
+  isActive: boolean; // 활성 상태
+  createdAt: Timestamp;
+  expiredAt: Timestamp; // 만료 시간 (24시간 후 자동 만료)
+}
+
+// 포인트 지급 위치 기록 (중복 방지용)
+export interface PointLocationRecord {
+  id: string;
+  userId: string;
+  type: 'photo' | 'video';
+  latitude: number;
+  longitude: number;
+  feedId: string;
+  createdAt: Timestamp;
+}
+
+// 쿠폰 인터페이스 (Firestore 저장용)
+export interface Coupon {
+  id: string;
+  type: 'coupon';
+  videoId: string; // 연결된 CCTV 영상 ID
+
+  // 쿠폰 정보
+  couponTitle: string;
+  couponDescription: string;
+  storeName: string;
+  storeAddress: string;
+
+  // 발급 정보
+  maxClaims: number; // 최대 발급 개수
+  claimedBy: string[]; // 쿠폰을 받아간 사용자 UID 목록
+
+  // 발행자 정보
+  issuedBy: string; // 발행자 UID (store 또는 admin)
+  issuerName: string; // 발행자 이름
+
+  // 시간 정보
+  createdAt: number;
+  expiresAt: number; // 만료 시간
+  duration: number; // 지속 시간 (밀리초)
+
+  // 메타데이터
+  color: string;
+  sessionId: string; // 레거시 호환용
+}
+
+// 사용자가 받은 쿠폰 (Firestore 저장용)
+export interface UserCoupon {
+  id: string; // 쿠폰 ID (Coupon의 id와 동일)
+  userId: string; // 사용자 UID
+  couponTitle: string;
+  couponDescription: string;
+  storeName: string;
+  storeAddress: string;
+
+  // 수령 정보
+  claimedAt: Timestamp;
+
+  // 사용 정보
+  used: boolean;
+  usedAt?: Timestamp;
+  usedLocation?: string; // 사용한 매장 위치 (선택)
+
+  // 발행자 정보
+  issuedBy: string; // 발행자 UID
+  issuerName: string;
+
+  // 원본 쿠폰 정보 (참조용)
+  videoId: string;
+  expiresAt: number;
 }

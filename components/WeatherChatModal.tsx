@@ -100,9 +100,10 @@ interface WeatherChatModalProps {
   weatherSources: WeatherSource[];
   onSaveSource: (data: Omit<WeatherSource, 'id'> & { id?: string }) => void;
   onDeleteSource: (id: string) => void;
+  onToggleCamChat: (id: string, showInCamChat: boolean) => void;
 }
 
-const WeatherChatModal: React.FC<WeatherChatModalProps> = ({ isOpen, onClose, weatherSources, onSaveSource, onDeleteSource }) => {
+const WeatherChatModal: React.FC<WeatherChatModalProps> = ({ isOpen, onClose, weatherSources, onSaveSource, onDeleteSource, onToggleCamChat }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isListModalOpen, setIsListModalOpen] = useState(false);
   const [isLiveViewOpen, setIsLiveViewOpen] = useState(false);
@@ -797,14 +798,14 @@ ${source.weatherData ? `
           </div>
         }
       >
-        <div className="flex flex-col h-[70vh] max-h-[600px]">
-          {/* 관리 버튼들 숨김 - 사용자 화면에서는 불필요 */}
-          {/* <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b gap-y-2">
-            <h4 className="text-lg font-semibold text-gray-700">정보 소스 관리</h4>
+        <div className="flex flex-col h-[calc(90vh-250px)]">
+          {/* 관리 버튼들 */}
+          <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b gap-y-2">
+            <h4 className="text-lg font-semibold text-gray-700">CCTV 소스 관리</h4>
             <div className="flex space-x-2 flex-wrap justify-end gap-y-2">
               <Button onClick={() => setIsListModalOpen(true)} variant="secondary">목록 보기 및 편집</Button>
               <Button onClick={handleOpenAddModal} size="normal">
-                영상 주소 입력하기
+                CCTV 추가하기
               </Button>
               <Button
                 onClick={() => setIsLiveViewOpen(true)}
@@ -813,7 +814,7 @@ ${source.weatherData ? `
                 실시간 영상으로 날씨보기
               </Button>
             </div>
-          </header> */}
+          </header>
 
           <main className="flex-1 p-2 overflow-y-auto bg-gray-100 rounded-lg">
             <div className="space-y-4 p-2">
@@ -908,6 +909,7 @@ ${source.weatherData ? `
         sources={weatherSources}
         onEdit={handleOpenEditModal}
         onDelete={onDeleteSource}
+        onToggleCamChat={onToggleCamChat}
       />
 
       <AddWeatherSourceModal

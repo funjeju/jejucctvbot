@@ -20,7 +20,7 @@ import { useAuth } from './contexts/AuthContext';
 type ModalType = 'weather' | 'guide' | 'tripPlanner' | 'newsFeed' | null;
 
 const UserApp: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
 
   // 데이터 상태
   const [spots, setSpots] = useState<Place[]>([]);
@@ -147,7 +147,7 @@ const UserApp: React.FC = () => {
 
   // 뉴스 추가 버튼 클릭 핸들러
   const handleAddNewsClick = () => {
-    if (currentUser) {
+    if (user) {
       setShowNewsWriteModal(true);
     } else {
       setShowLoginModal(true);
@@ -168,7 +168,7 @@ const UserApp: React.FC = () => {
 
   // 뉴스 수정 핸들러
   const handleEditNews = (newsItem: NewsItem) => {
-    if (currentUser) {
+    if (user) {
       setEditingNews(newsItem);
       setShowNewsWriteModal(true);
     } else {
@@ -212,8 +212,8 @@ const UserApp: React.FC = () => {
         isOpen={activeModal === 'weather'}
         onClose={() => setActiveModal(null)}
         weatherSources={weatherSources}
-        onSaveSource={() => {}} // 읽기 전용
-        onDeleteSource={() => {}} // 읽기 전용
+        onSaveSource={() => { }} // 읽기 전용
+        onDeleteSource={() => { }} // 읽기 전용
       />
 
       <Chatbot

@@ -176,22 +176,22 @@ const ContentLibrary: React.FC<ContentLibraryProps> = ({ spots, news, onAddNew, 
             </div>
 
             <Button
-                onClick={() => window.location.href = '/cctv'}
+                onClick={onOpenWeatherChat}
                 className="bg-red-500 text-white hover:bg-red-600 focus:ring-red-400"
             >
-                📹 제주 라이브 CCTV
+                📹 CCTV 목록 관리
+            </Button>
+            <Button
+                onClick={() => window.location.href = '/cctv'}
+                className="bg-purple-500 text-white hover:bg-purple-600 focus:ring-purple-400"
+            >
+                🎥 라이브 CCTV 보기
             </Button>
             <Button
                 onClick={onOpenTripPlanner}
                 className="bg-teal-500 text-white hover:bg-teal-600 focus:ring-teal-400"
             >
                 📅 여행일정AI
-            </Button>
-            <Button
-                onClick={onOpenWeatherChat}
-                className="bg-sky-500 text-white hover:bg-sky-600 focus:ring-sky-400"
-            >
-                🌦️ 실시간 날씨 챗톡
             </Button>
             <Button
                 onClick={() => onOpenOroomDB && onOpenOroomDB()}
