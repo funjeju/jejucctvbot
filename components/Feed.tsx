@@ -21,6 +21,14 @@ const translations = {
     noFeeds: '아직 등록된 피드가 없습니다',
     nofeedsDesc: '첫 번째 피드를 작성해보세요!',
     loading: '피드를 불러오는 중...',
+    sortBy: '정렬',
+    sortByUploadRecent: '최근 업로드순',
+    sortByPhotoRecent: '최근 촬영순',
+    sortByDistance: '가까운 거리순',
+    filterByRegion: '지역 필터',
+    allRegions: '전체 지역',
+    locationPermissionNeeded: '위치 권한이 필요합니다',
+    gettingLocation: '위치 정보를 가져오는 중...',
   },
   ENG: {
     title: 'Jeju Feed',
@@ -29,6 +37,14 @@ const translations = {
     noFeeds: 'No feeds yet',
     nofeedsDesc: 'Be the first to create a feed!',
     loading: 'Loading feeds...',
+    sortBy: 'Sort',
+    sortByUploadRecent: 'Recent Upload',
+    sortByPhotoRecent: 'Recent Photo',
+    sortByDistance: 'Nearest',
+    filterByRegion: 'Region',
+    allRegions: 'All Regions',
+    locationPermissionNeeded: 'Location permission needed',
+    gettingLocation: 'Getting location...',
   },
   CHN: {
     title: '济州动态',
@@ -37,6 +53,14 @@ const translations = {
     noFeeds: '还没有动态',
     nofeedsDesc: '成为第一个创建动态的人！',
     loading: '正在加载动态...',
+    sortBy: '排序',
+    sortByUploadRecent: '最近上传',
+    sortByPhotoRecent: '最近拍摄',
+    sortByDistance: '最近距离',
+    filterByRegion: '地区',
+    allRegions: '所有地区',
+    locationPermissionNeeded: '需要位置权限',
+    gettingLocation: '获取位置中...',
   },
 };
 
@@ -49,6 +73,12 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
   const [selectedFeed, setSelectedFeed] = useState<FeedPost | null>(null);
   const [selectedFeedId, setSelectedFeedId] = useState<string | null>(null);
 
+  // 정렬 및 필터링 상태
+  const [sortBy, setSortBy] = useState<'upload' | 'photo' | 'distance'>('upload');
+  const [selectedRegion, setSelectedRegion] = useState<string>('all');
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+
   const t = translations[language];
 
   const handleCreatePostClick = () => {
@@ -58,6 +88,100 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
       setIsCreateModalOpen(true);
     }
   };
+
+  // Haversine 거리 계산 (미터 단위)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371e3; // 지구 반지름 (미터)
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+  };
+
+  // 사용자 위치 가져오기
+  const getUserLocation = () => {
+    if (!navigator.geolocation) {
+      alert(t.locationPermissionNeeded);
+      return;
+    }
+
+    setIsGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        setIsGettingLocation(false);
+        setSortBy('distance');
+      },
+      (error) => {
+        console.error('위치 정보 가져오기 실패:', error);
+        alert(t.locationPermissionNeeded);
+        setIsGettingLocation(false);
+      }
+    );
+  };
+
+  // 피드에서 GPS 좌표 추출
+  const getFeedLocation = (feed: FeedPost): { latitude: number; longitude: number } | null => {
+    if (feed.media && feed.media.length > 0) {
+      const firstMedia = feed.media[0];
+      if (firstMedia.exif?.latitude && firstMedia.exif?.longitude) {
+        return {
+          latitude: firstMedia.exif.latitude,
+          longitude: firstMedia.exif.longitude,
+        };
+      }
+    }
+    return null;
+  };
+
+  // 피드의 지역 정보 가져오기 (nearbySpots에서 추출)
+  const getFeedRegion = React.useCallback((feed: FeedPost): string | null => {
+    console.log('getFeedRegion 호출:', {
+      feedId: feed.id,
+      hasNearbySpots: !!feed.nearbySpots,
+      nearbySpots: feed.nearbySpots,
+      spotsCount: spots.length
+    });
+
+    if (feed.nearbySpots && feed.nearbySpots.length > 0) {
+      // nearbySpots의 첫 번째 spot의 region 정보 사용
+      const nearestSpotId = feed.nearbySpots[0].id;
+      const spot = spots.find((s: Place) => s.place_id === nearestSpotId);
+
+      console.log('nearbySpot 찾기:', {
+        nearestSpotId,
+        foundSpot: !!spot,
+        spotRegion: spot?.region,
+        spotTitle: spot?.place_name
+      });
+
+      return spot?.region || null;
+    }
+    return null;
+  }, [spots]);
+
+  // 지역 목록 생성 (spots 데이터에서 추출)
+  const availableRegions = React.useMemo(() => {
+    const regions = new Set<string>();
+    spots.forEach(spot => {
+      if (spot.region) {
+        regions.add(spot.region);
+      }
+    });
+    const sortedRegions = Array.from(regions).sort();
+    console.log('사용 가능한 지역 목록:', sortedRegions);
+    return sortedRegions;
+  }, [spots]);
 
   // Firestore에서 피드 실시간 로드
   useEffect(() => {
@@ -95,12 +219,77 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
   // selectedFeedId가 변경되면 해당 피드를 feeds에서 찾아 selectedFeed 업데이트
   useEffect(() => {
     if (selectedFeedId) {
-      const updatedFeed = feeds.find(f => f.id === selectedFeedId);
+      const updatedFeed = feeds.find((f: FeedPost) => f.id === selectedFeedId);
       if (updatedFeed) {
         setSelectedFeed(updatedFeed);
       }
     }
   }, [feeds, selectedFeedId]);
+
+  // 정렬 및 필터링된 피드 목록
+  const sortedAndFilteredFeeds = React.useMemo(() => {
+    let result = [...feeds];
+
+    console.log('=== 정렬/필터링 시작 ===');
+    console.log('전체 피드 수:', feeds.length);
+    console.log('선택된 지역:', selectedRegion);
+
+    // 지역 필터링
+    if (selectedRegion !== 'all') {
+      result = result.filter((feed: FeedPost) => {
+        const feedRegion = getFeedRegion(feed);
+        const match = feedRegion === selectedRegion;
+        console.log(`피드 ${feed.id} - 지역: ${feedRegion}, 매칭: ${match}`);
+        return match;
+      });
+      console.log('필터링 후 피드 수:', result.length);
+    }
+
+    // 정렬
+    if (sortBy === 'upload') {
+      // 최근 업로드순 (기본값, createdAt 기준)
+      result.sort((a: FeedPost, b: FeedPost) => b.createdAt.seconds - a.createdAt.seconds);
+    } else if (sortBy === 'photo') {
+      // 최근 촬영순 (EXIF rawDateTime 기준)
+      result.sort((a: FeedPost, b: FeedPost) => {
+        const aTime = a.media?.[0]?.exif?.rawDateTime;
+        const bTime = b.media?.[0]?.exif?.rawDateTime;
+
+        if (!aTime && !bTime) return 0;
+        if (!aTime) return 1;
+        if (!bTime) return -1;
+
+        return new Date(bTime).getTime() - new Date(aTime).getTime();
+      });
+    } else if (sortBy === 'distance' && userLocation) {
+      // 가까운 거리순
+      result.sort((a: FeedPost, b: FeedPost) => {
+        const aLoc = getFeedLocation(a);
+        const bLoc = getFeedLocation(b);
+
+        if (!aLoc && !bLoc) return 0;
+        if (!aLoc) return 1;
+        if (!bLoc) return -1;
+
+        const aDist = calculateDistance(
+          userLocation.latitude,
+          userLocation.longitude,
+          aLoc.latitude,
+          aLoc.longitude
+        );
+        const bDist = calculateDistance(
+          userLocation.latitude,
+          userLocation.longitude,
+          bLoc.latitude,
+          bLoc.longitude
+        );
+
+        return aDist - bDist;
+      });
+    }
+
+    return result;
+  }, [feeds, sortBy, selectedRegion, userLocation]);
 
   if (isLoading) {
     return (
@@ -135,6 +324,50 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
         </div>
       </div>
 
+      {/* 정렬 및 필터링 컨트롤 */}
+      <div className="bg-white shadow-md rounded-lg p-3 mb-4">
+        <div className="flex flex-wrap gap-2">
+          {/* 정렬 드롭다운 */}
+          <div className="flex-1 min-w-[140px]">
+            <select
+              value={sortBy}
+              onChange={(e) => {
+                const value = e.target.value as 'upload' | 'photo' | 'distance';
+                if (value === 'distance' && !userLocation) {
+                  getUserLocation();
+                } else {
+                  setSortBy(value);
+                }
+              }}
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+              disabled={isGettingLocation}
+            >
+              <option value="upload">{t.sortByUploadRecent}</option>
+              <option value="photo">{t.sortByPhotoRecent}</option>
+              <option value="distance">
+                {isGettingLocation ? t.gettingLocation : t.sortByDistance}
+              </option>
+            </select>
+          </div>
+
+          {/* 지역 필터 드롭다운 */}
+          <div className="flex-1 min-w-[140px]">
+            <select
+              value={selectedRegion}
+              onChange={(e) => setSelectedRegion(e.target.value)}
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+            >
+              <option value="all">{t.allRegions}</option>
+              {availableRegions.map((region) => (
+                <option key={region} value={region}>
+                  {region}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* 플로팅 버튼 - 모바일에서만 표시 */}
       <button
         onClick={handleCreatePostClick}
@@ -147,7 +380,7 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
       </button>
 
       {/* 피드 목록 */}
-      {feeds.length === 0 ? (
+      {sortedAndFilteredFeeds.length === 0 ? (
         <div className="bg-white shadow-md rounded-lg p-8 text-center">
           <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
@@ -163,7 +396,7 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
         </div>
       ) : (
         <div className="space-y-4">
-          {feeds.map((feed) => (
+          {sortedAndFilteredFeeds.map((feed: FeedPost) => (
             <FeedCard
               key={feed.id}
               feed={feed}

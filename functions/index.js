@@ -6,8 +6,20 @@ const admin = require('firebase-admin');
 
 admin.initializeApp();
 
-// 기본 Firestore 데이터베이스 사용 (채팅이 저장되는 곳)
+// -----------------------------------------------------------------
+// [수정완료] 'databuilder' 데이터베이스 연결 설정
+// -----------------------------------------------------------------
+// 1. 기본 Firestore 인스턴스를 가져옵니다.
 const db = admin.firestore();
+
+// 2. 내부 설정을 변경하여 강제로 'databuilder' DB를 바라보게 합니다.
+// (참고: 중복 선언 방지를 위해 const db는 한 번만 씁니다)
+if (db._settings) {
+  db._settings.databaseId = 'databuilder';
+}
+console.log("Database initialized targeting: databuilder");
+// -----------------------------------------------------------------
+
 
 // HLS 프록시 함수
 exports.proxyHls = onRequest((req, res) => {
