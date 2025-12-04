@@ -1043,17 +1043,17 @@ ${candidateOrooms.slice(0, 10).map((oroom, idx) =>
   return (
     <div className="bg-white shadow-md rounded-lg flex flex-col h-[500px] lg:h-[600px]">
       {/* 채팅방 헤더 */}
-      <div className="bg-indigo-600 text-white p-3 sm:p-4 rounded-t-lg">
+      <div className="bg-blue-500 text-white p-3 sm:p-4 rounded-t-xl">
         <h3 className="text-base sm:text-lg font-bold mb-2">{t.realTimeChat}</h3>
-        <p className="text-xs sm:text-sm text-indigo-100 mb-2">
+        <p className="text-xs sm:text-sm text-white/90 mb-2">
           {cctv.title}{t.watching}
         </p>
         <div className="flex flex-wrap items-center gap-1 sm:gap-2">
           <button
             onClick={handleLocationToggle}
             className={`text-xs px-2 py-1 rounded-md transition-colors flex items-center gap-1 ${locationEnabled
-              ? 'bg-green-600 hover:bg-green-700 text-white'
-              : 'bg-indigo-700 hover:bg-indigo-800 text-white'
+              ? 'bg-orange-500 hover:bg-orange-600 text-white'
+              : 'bg-blue-500 hover:bg-blue-600 text-white'
               }`}
             title={locationEnabled ? '위치 기반 검색 활성화됨' : '위치 기반 검색 비활성화'}
           >
@@ -1061,7 +1061,7 @@ ${candidateOrooms.slice(0, 10).map((oroom, idx) =>
           </button>
           <button
             onClick={handleChangeUsername}
-            className="text-xs bg-indigo-700 hover:bg-indigo-800 px-2 py-1 rounded-md transition-colors flex items-center gap-1"
+            className="text-xs bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded-md transition-colors flex items-center gap-1"
           >
             <span className="opacity-70">{t.nickname}</span>
             <span className="font-bold">{username}</span>
@@ -1069,7 +1069,7 @@ ${candidateOrooms.slice(0, 10).map((oroom, idx) =>
           {/* 포인트 표시 및 박스 버튼 */}
           {user && userProfile && (
             <>
-              <span className="text-xs bg-purple-600 px-2 py-1 rounded-md flex items-center gap-1">
+              <span className="text-xs bg-orange-500 px-2 py-1 rounded-md flex items-center gap-1">
                 💰 {(userProfile.points || 0).toLocaleString()}P
               </span>
               <button
@@ -1091,14 +1091,14 @@ ${candidateOrooms.slice(0, 10).map((oroom, idx) =>
       {/* 메시지 목록 */}
       <div
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50"
+        className="flex-1 overflow-y-auto p-4 space-y-3 bg-blue-50"
       >
         {/* 이전 대화 내용 보기 버튼 */}
         {hasMoreMessages && !isLoadingOlder && (
           <div className="text-center py-4">
             <button
               onClick={loadOlderMessages}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors shadow-md"
+              className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-xl"
             >
               📜 이전 대화 내용 보기 ({loadedHours < 3 ? `${3 - loadedHours}시간 더 가능` : '최대'})
             </button>
@@ -1108,8 +1108,8 @@ ${candidateOrooms.slice(0, 10).map((oroom, idx) =>
         {/* 로딩 인디케이터 */}
         {isLoadingOlder && (
           <div className="text-center py-4">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            <p className="text-sm text-gray-600 mt-2">이전 메시지 로드 중...</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-orange-500"></div>
+            <p className="text-sm text-blue-700 font-semibold mt-2">이전 메시지 로드 중...</p>
           </div>
         )}
 
@@ -1165,7 +1165,7 @@ ${candidateOrooms.slice(0, 10).map((oroom, idx) =>
                 {/* 답글 대상 미리보기 (KakaoTalk 스타일) */}
                 {msg.replyTo && msg.replyToUsername && (
                   <div className={`text-xs mb-1 ${isMyMessage && !isAI ? 'text-right' : 'text-left'}`}>
-                    <div className="inline-block bg-gray-200 text-gray-700 px-2 py-1 rounded-md">
+                    <div className="inline-block bg-blue-100 text-blue-700 px-2 py-1 rounded-md border border-blue-200">
                       <span className="font-semibold">↩ {msg.replyToUsername}:</span> {msg.replyToMessage}
                     </div>
                   </div>
@@ -1175,10 +1175,10 @@ ${candidateOrooms.slice(0, 10).map((oroom, idx) =>
                   className={`
                     rounded-lg p-3 shadow-sm relative
                     ${isAI
-                      ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white'
+                      ? 'bg-blue-500 text-white'
                       : isMyMessage
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-white text-gray-800 border border-gray-200'
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-white text-blue-800 border-2 border-blue-200'
                     }
                     ${msg.hidden ? 'opacity-50 border-red-500 border-2' : ''}
                   `}
@@ -1196,7 +1196,7 @@ ${candidateOrooms.slice(0, 10).map((oroom, idx) =>
 
                   {/* 시간 및 액션 버튼 */}
                   <div className="flex items-center justify-between mt-1 gap-2">
-                    <p className={`text-xs ${isAI || isMyMessage ? 'text-indigo-100' : 'text-gray-400'}`}>
+                    <p className={`text-xs ${isAI || isMyMessage ? 'text-white/80' : 'text-blue-500'}`}>
                       {msg.timestamp?.seconds
                         ? new Date(msg.timestamp.seconds * 1000).toLocaleTimeString('ko-KR', {
                           hour: '2-digit',
@@ -1211,8 +1211,8 @@ ${candidateOrooms.slice(0, 10).map((oroom, idx) =>
                         <button
                           onClick={() => handleReply(msg)}
                           className={`text-xs px-2 py-0.5 rounded transition-colors ${isMyMessage
-                            ? 'bg-indigo-500 hover:bg-indigo-400 text-white'
-                            : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                            ? 'bg-blue-500 hover:bg-blue-400 text-white'
+                            : 'bg-orange-100 hover:bg-orange-200 text-orange-700'
                             }`}
                           title="답글"
                         >
@@ -1252,13 +1252,13 @@ ${candidateOrooms.slice(0, 10).map((oroom, idx) =>
       </div>
 
       {/* 메시지 입력 */}
-      <div className="border-t border-gray-200 p-2 sm:p-3 bg-white rounded-b-lg">
+      <div className="border-t-2 border-blue-200 p-2 sm:p-3 bg-white rounded-b-xl">
         {/* 답글 모드 표시 */}
         {replyingTo && (
-          <div className="mb-2 bg-indigo-50 border-l-4 border-indigo-500 p-2 rounded flex items-start justify-between">
+          <div className="mb-2 bg-blue-50 border-l-4 border-orange-500 p-2 rounded-xl flex items-start justify-between">
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-indigo-700">↩ {replyingTo.username}에게 답글</p>
-              <p className="text-xs text-gray-600 truncate">{replyingTo.message}</p>
+              <p className="text-xs font-bold text-blue-700">↩ {replyingTo.username}에게 답글</p>
+              <p className="text-xs text-orange-600 truncate">{replyingTo.message}</p>
             </div>
             <button
               onClick={cancelReply}
@@ -1277,13 +1277,13 @@ ${candidateOrooms.slice(0, 10).map((oroom, idx) =>
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder={`${t.typeMessage} ( / ${language === 'KOR' ? '로 AI 호출' : 'for AI'} )`}
-            className="flex-1 px-2 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+            className="flex-1 px-2 sm:px-4 py-2 border-2 border-blue-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             disabled={isLoading}
           />
           <button
             onClick={handleSendMessage}
             disabled={isLoading || !inputMessage.trim()}
-            className="bg-indigo-600 text-white px-3 sm:px-6 py-2 rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm whitespace-nowrap"
+            className="bg-orange-500 hover:bg-orange-600 text-white px-3 sm:px-6 py-2 rounded-xl disabled:bg-gray-400 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl font-bold text-sm whitespace-nowrap"
           >
             {isLoading ? (language === 'KOR' ? '전송 중...' : language === 'ENG' ? 'Sending...' : '发送中...') : t.send}
           </button>

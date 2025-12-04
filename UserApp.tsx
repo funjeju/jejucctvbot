@@ -48,6 +48,17 @@ const UserApp: React.FC = () => {
       );
       setSpots(spotsArray);
       console.log(`✅ ${spotsArray.length}개의 스팟 로드 완료`);
+
+      // 디버깅: 첫 5개 스팟의 location 구조 확인
+      console.log('=== 스팟 location 구조 디버깅 ===');
+      spotsArray.slice(0, 5).forEach(spot => {
+        console.log(`${spot.place_name}:`, {
+          location: spot.location,
+          categories: spot.categories,
+          hasLatitude: !!spot.location?.latitude,
+          hasLongitude: !!spot.location?.longitude
+        });
+      });
     }, (error) => {
       console.error('❌ 스팟 로드 실패:', error);
       setSpots([]);
@@ -188,7 +199,7 @@ const UserApp: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gray-50">
       {/* 헤더 */}
       <UserHeader onLoginClick={() => setShowLoginModal(true)} />
 

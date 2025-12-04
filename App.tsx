@@ -779,7 +779,7 @@ const App: React.FC = () => {
               <div className="bg-red-50 border border-red-200 rounded-lg p-6">
                 <p className="text-red-600 font-semibold mb-2">오류가 발생했습니다</p>
                 <p className="text-red-500 mb-4">{error}</p>
-                <Button onClick={() => window.location.reload()} variant="primary">
+                <Button onClick={() => window.location.reload()} variant="default">
                   새로고침
                 </Button>
               </div>
@@ -870,7 +870,7 @@ const App: React.FC = () => {
     return (
       <button
         onClick={handleExitToLibrary}
-        className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+        className="text-sm font-medium text-gray-900 hover:text-gray-700 transition-colors"
       >
         라이브러리로 돌아가기
       </button>
@@ -879,12 +879,12 @@ const App: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-gray-100 font-sans p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gray-50 font-sans p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        <header className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-3">
+        <header className="flex items-center justify-between mb-8 pb-6 border-b border-gray-200">
+          <div className="flex items-center gap-3">
             <KLokalLogo />
-            <h1 className="text-3xl font-bold text-gray-800 tracking-tight">
+            <h1 className="text-3xl font-semibold text-gray-900 tracking-tight">
               Jeju DB: AI 데이터빌더
             </h1>
           </div>
@@ -905,28 +905,28 @@ const App: React.FC = () => {
       >
         <div className="space-y-6">
           <div>
-            <p className="text-gray-600">
+              <p className="text-gray-600">
               아래는 최종 생성된 JSON 데이터입니다. 내용을 확인 후 저장하거나, 다시 돌아가 수정할 수 있습니다.
             </p>
             {isDataSaved &&
-              <p className="mt-2 text-sm font-semibold text-green-600 bg-green-50 p-3 rounded-md">
+              <p className="mt-2 text-sm font-semibold text-green-600 bg-green-50 p-3 rounded-md border border-green-200">
                 ✓ 저장 완료! (브라우저 콘솔을 확인하세요)
               </p>
             }
           </div>
-          <div className="bg-gray-100 p-4 rounded-md max-h-96 overflow-y-auto border border-gray-200">
-            <pre className="text-sm text-gray-800 whitespace-pre-wrap">
+          <div className="bg-gray-50 p-4 rounded-md max-h-96 overflow-y-auto border border-gray-200">
+            <pre className="text-sm text-gray-800 whitespace-pre-wrap font-mono">
               {JSON.stringify(finalData, null, 2)}
             </pre>
           </div>
-          <div className="flex justify-end items-center space-x-3 pt-5 border-t mt-2">
-            <Button onClick={handleCloseModal} variant="secondary" disabled={isDataSaved}>
+          <div className="flex justify-end items-center gap-3 pt-5 border-t border-gray-200 mt-2">
+            <Button onClick={handleCloseModal} variant="outline" disabled={isDataSaved}>
               수정하기
             </Button>
-            <Button onClick={handleConfirmSave} disabled={isDataSaved}>
+            <Button onClick={handleConfirmSave} variant="default" disabled={isDataSaved}>
               {isDataSaved ? '저장됨' : '저장하기'}
             </Button>
-            <Button onClick={handleExitToLibrary}>
+            <Button onClick={handleExitToLibrary} variant="default">
               라이브러리로 이동
             </Button>
           </div>
@@ -935,7 +935,7 @@ const App: React.FC = () => {
 
       <button
         onClick={() => setIsChatbotOpen(true)}
-        className="fixed bottom-6 right-6 bg-indigo-600 text-white p-4 rounded-full shadow-lg hover:bg-indigo-700 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 z-50"
+        className="fixed bottom-6 right-6 bg-gray-900 text-white p-4 rounded-full shadow-lg hover:bg-gray-800 transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 z-50"
         onDeleteSource={handleDeleteWeatherSource}
         onToggleCamChat={handleToggleCamChat}
       />

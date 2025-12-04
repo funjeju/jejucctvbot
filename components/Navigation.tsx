@@ -88,25 +88,25 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage, onNavigate, langua
   return (
     <>
       {/* 모바일: 하단 네비게이션 - fixed로 화면 최하단에 고정 */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 safe-area-inset-bottom">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-blue-500 border-t-2 border-blue-400 shadow-2xl z-50 safe-area-inset-bottom">
         <div className="flex items-center justify-around">
           {menuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => item.id === 'mypage' ? handleMyPageClick() : onNavigate(item.id)}
-              className={`flex flex-col items-center justify-center py-3 px-2 flex-1 transition-colors relative ${
+              className={`flex flex-col items-center justify-center py-3 px-2 flex-1 transition-all relative ${
                 currentPage === item.id
-                  ? 'text-indigo-600'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'text-orange-500 scale-110'
+                  : 'text-white/80 hover:text-white'
               }`}
             >
-              <div className={currentPage === item.id ? 'text-indigo-600' : 'text-gray-500'}>
+              <div className={currentPage === item.id ? 'text-orange-500 drop-shadow-lg' : 'text-white/80'}>
                 {item.icon}
               </div>
-              <span className="text-xs mt-1 font-medium whitespace-nowrap">{item.label}</span>
+              <span className={`text-xs mt-1 font-bold whitespace-nowrap ${currentPage === item.id ? 'text-orange-500' : 'text-white/80'}`}>{item.label}</span>
               {/* 로그인 상태 표시 */}
               {item.id === 'mypage' && user && (
-                <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full"></div>
+                <div className="absolute top-2 right-2 w-2.5 h-2.5 bg-orange-500 rounded-full shadow-lg"></div>
               )}
             </button>
           ))}
@@ -114,16 +114,16 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage, onNavigate, langua
       </nav>
 
       {/* PC: 상단 네비게이션 */}
-      <nav className="hidden lg:block bg-white shadow-md rounded-lg">
-        <div className="flex items-center justify-center gap-2 p-2">
+      <nav className="hidden lg:block bg-blue-500 shadow-xl rounded-xl border-2 border-blue-400">
+        <div className="flex items-center justify-center gap-3 p-3">
           {menuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => item.id === 'mypage' ? handleMyPageClick() : onNavigate(item.id)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-all relative ${
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl transition-all relative font-bold ${
                 currentPage === item.id
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-orange-500 text-white shadow-xl scale-105'
+                  : 'bg-white/20 text-white hover:bg-white/30'
               }`}
             >
               <div className="w-5 h-5">
@@ -132,7 +132,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage, onNavigate, langua
               <span className="font-medium">{item.label}</span>
               {/* 로그인 상태 표시 */}
               {item.id === 'mypage' && user && userProfile && (
-                <span className="ml-1 text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">
+                <span className="ml-1 text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full font-bold shadow-md">
                   {userProfile.role === 'admin' ? 'Admin' : userProfile.role === 'store' ? 'Store' : ''}
                 </span>
               )}

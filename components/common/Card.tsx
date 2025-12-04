@@ -1,13 +1,21 @@
 import React from 'react';
+import { cn } from '../../utils';
 
 interface CardProps {
   children: React.ReactNode;
   className?: string;
+  hover?: boolean;
 }
 
-const Card: React.FC<CardProps> = ({ children, className = '' }) => {
+const Card: React.FC<CardProps> = ({ children, className = '', hover = false }) => {
   return (
-    <div className={`bg-white p-6 sm:p-8 rounded-xl shadow-md ${className}`}>
+    <div
+      className={cn(
+        'rounded-lg border border-gray-200 bg-white text-gray-950 shadow-sm',
+        hover && 'transition-all hover:shadow-md',
+        className
+      )}
+    >
       {children}
     </div>
   );

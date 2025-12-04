@@ -23,7 +23,12 @@
       "Bash(\"c:\\Users\\na\\Desktop\\aiproject\\jejudatachatbot\\components\\LoginModal.tsx\")",
       "Bash(firebase functions:list:*)",
       "Bash(firebase functions:log:*)",
-      "Bash(firebase functions:delete:*)"
+      "Bash(firebase functions:delete:*)",
+      "Bash(firebase firestore:get:*)",
+      "Bash(node scripts/geocode-addresses.js:*)",
+      "Bash(node scripts/geocode-simple.js:*)",
+      "Bash(start geocode.html)",
+      "Bash(node scripts/check-categories.js:*)"
     ],
     "deny": [],
     "ask": []

@@ -6,6 +6,7 @@ import App from './App';
 import UserApp from './UserApp';
 import CCTVViewerPage from './pages/CCTVViewerPage';
 import { AuthProvider } from './contexts/AuthContext';
+import './index.css';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

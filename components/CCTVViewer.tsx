@@ -365,10 +365,10 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="flex items-center justify-center min-h-screen bg-blue-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">{t.loading}</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-orange-500 mx-auto mb-4"></div>
+          <p className="text-blue-700 font-semibold text-lg">{t.loading}</p>
         </div>
       </div>
     );
@@ -376,13 +376,13 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
 
   if (cctvs.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="text-center max-w-md">
-          <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="flex items-center justify-center min-h-screen bg-blue-50">
+        <div className="text-center max-w-md bg-white rounded-2xl p-8 shadow-xl border-2 border-blue-300">
+          <svg className="w-20 h-20 text-orange-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">{t.noCCTV}</h2>
-          <p className="text-gray-600">{t.noCCTVDesc}</p>
+          <h2 className="text-2xl font-bold text-blue-700 mb-2">{t.noCCTV}</h2>
+          <p className="text-orange-600">{t.noCCTVDesc}</p>
         </div>
       </div>
     );
@@ -399,7 +399,7 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
   const navLabels = { feed: 'Feed', cam: 'Cam & Chat', tips: 'AI', mypage: 'My Page' };
 
   return (
-    <div className="relative min-h-screen bg-gray-100">
+    <div className="relative min-h-screen bg-blue-50">
       {/* Navigation Component */}
       <Navigation
         currentPage={currentPage}
@@ -414,31 +414,33 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
           {currentPage === 'cam' && (
             <>
               {/* 헤더 */}
-              <header className="bg-white shadow-md rounded-lg p-2 sm:p-4">
+              <header className="bg-blue-500 shadow-xl rounded-xl p-3 sm:p-5 text-white">
                 {/* 최상단: 제목 + 로고 + 라이브 카운트 */}
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
                     {/* 로고 */}
-                    <svg className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                      <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </div>
                     {/* 제목 */}
-                    <h1 className="text-lg sm:text-xl font-bold text-gray-800">{t.title}</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold text-white">{t.title}</h1>
                   </div>
                   {/* 라이브 카운트 */}
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500">
-                    <span className="flex items-center">
-                      <div className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></div>
-                      {cctvs.length}{t.live}
+                  <div className="flex items-center gap-2 text-sm sm:text-base text-white">
+                    <span className="flex items-center bg-white/20 px-3 py-1.5 rounded-full">
+                      <div className="w-2.5 h-2.5 bg-orange-500 rounded-full mr-2 animate-pulse"></div>
+                      <span className="font-semibold">{cctvs.length}{t.live}</span>
                     </span>
                   </div>
                 </div>
 
                 {/* 두 번째 줄: 부제목 + 언어 버튼 */}
                 <div className="flex items-center justify-between">
-                  <p className="text-xs sm:text-sm text-gray-600">{t.subtitle}</p>
+                  <p className="text-sm sm:text-base text-white/90 font-medium">{t.subtitle}</p>
                   {/* 언어 선택 버튼 */}
-                  <div className="flex gap-1">
+                  <div className="flex gap-2">
                     {(['KOR', 'ENG', 'CHN'] as const).map((lang) => (
                       <button
                         key={lang}
@@ -446,10 +448,11 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
                           setLanguage(lang);
                           localStorage.setItem('chatLanguage', lang);
                         }}
-                        className={`text-xs px-2 py-1 rounded transition-colors ${language === lang
-                          ? 'bg-indigo-600 text-white font-bold'
-                          : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                          }`}
+                        className={`text-xs sm:text-sm px-3 py-1.5 rounded-lg transition-all font-semibold ${
+                          language === lang
+                            ? 'bg-orange-500 text-white shadow-lg'
+                            : 'bg-white/20 text-white hover:bg-white/30'
+                        }`}
                       >
                         {lang}
                       </button>
@@ -467,7 +470,7 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     {/* 영상 플레이어 (왼쪽 2/3) */}
                     <div className="lg:col-span-2">
-                      <div className="bg-white shadow-md rounded-lg overflow-hidden">
+                      <div className="bg-white shadow-xl rounded-xl overflow-hidden border-2 border-blue-300">
                         {getVideoType(selectedCCTV.youtubeUrl) === 'youtube' ? (
                           // YouTube 영상은 플레이어에서 재생
                           <div className="relative w-full aspect-video overflow-visible">
@@ -485,7 +488,7 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
                               <h3 className="text-white text-xl font-bold mb-4">{selectedCCTV.title}</h3>
                               <button
                                 onClick={() => window.open(selectedCCTV.youtubeUrl, '_blank')}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 mx-auto"
+                                className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2 mx-auto"
                               >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -507,7 +510,7 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
                         {/* 영상에 낙서하기 버튼 */}
                         <button
                           onClick={() => setIsDoodleModalOpen(true)}
-                          className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 rounded-lg font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                          className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2"
                         >
                           <Paintbrush size={20} />
                           <span className="hidden sm:inline">낙서하기</span>
@@ -542,7 +545,7 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
                               }
                             }
                           }}
-                          className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-4 py-3 rounded-lg font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
@@ -580,20 +583,20 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
 
               {/* AI 여행일정 버튼 */}
               <button
-                className="w-full bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition-shadow"
+                className="w-full bg-blue-500 shadow-xl rounded-xl p-6 hover:bg-blue-600 hover:shadow-2xl transition-all hover:scale-[1.02] border-2 border-blue-300"
                 onClick={() => setIsTripPlannerOpen(true)}
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0">
+                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <div className="flex-1 text-left">
-                    <h3 className="text-lg font-bold text-gray-800 mb-1">AI 여행일정</h3>
-                    <p className="text-sm text-gray-600">AI가 맞춤형 제주 여행 일정을 추천해드립니다</p>
+                  <div className="flex-1 text-left text-white">
+                    <h3 className="text-xl font-bold mb-1">AI 여행일정</h3>
+                    <p className="text-sm text-white/90">AI가 맞춤형 제주 여행 일정을 추천해드립니다</p>
                   </div>
-                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </div>
@@ -601,21 +604,21 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
 
               {/* AI 여행가이드 버튼 */}
               <button
-                className="w-full bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition-shadow"
+                className="w-full bg-orange-500 shadow-xl rounded-xl p-6 hover:bg-orange-600 hover:shadow-2xl transition-all hover:scale-[1.02] border-2 border-orange-300"
                 onClick={() => setIsChatbotOpen(true)}
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0">
+                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                   </div>
-                  <div className="flex-1 text-left">
-                    <h3 className="text-lg font-bold text-gray-800 mb-1">AI 여행가이드</h3>
-                    <p className="text-sm text-gray-600">AI가 제주 여행지를 자세히 안내해드립니다</p>
+                  <div className="flex-1 text-left text-white">
+                    <h3 className="text-xl font-bold mb-1">AI 여행가이드</h3>
+                    <p className="text-sm text-white/90">AI가 제주 여행지를 자세히 안내해드립니다</p>
                   </div>
-                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </div>

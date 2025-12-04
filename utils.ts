@@ -20,3 +20,14 @@ export const getValueByPath = (obj: any, path: string): any => {
   }
   return result;
 };
+
+/**
+ * Utility function to merge class names (shadcn style)
+ */
+export function cn(...inputs: (string | undefined | null | false)[]): string {
+  return inputs
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}

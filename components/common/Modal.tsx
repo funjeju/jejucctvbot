@@ -74,29 +74,29 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
       aria-modal="true"
       role="dialog"
       onClick={handleOverlayClick}
     >
       <div
-        className={`bg-white rounded-xl shadow-xl w-full ${sizeClasses[size]} max-h-[90vh] flex flex-col`}
+        className={`bg-white rounded-lg border border-gray-200 shadow-lg w-full ${sizeClasses[size]} max-h-[90vh] flex flex-col`}
         style={{ transform: `translate(${position.x}px, ${position.y}px)`, cursor: isDragging ? 'grabbing' : 'default' }}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
           <header
-            className="p-5 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-xl"
+            className="px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white rounded-t-lg"
             onMouseDown={handleHeaderMouseDown}
             style={{ cursor: 'grab' }}
           >
-            <h2 className="text-xl font-bold text-gray-800">{title}</h2>
+            <h2 className="text-lg font-semibold leading-none tracking-tight">{title}</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-800 transition-colors"
+              className="rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-offset-2 disabled:pointer-events-none"
               aria-label="Close modal"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>

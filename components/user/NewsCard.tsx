@@ -62,7 +62,7 @@ const NewsCard: React.FC<NewsCardProps> = ({ news, relatedSpots, onClick }) => {
   return (
     <div
       onClick={() => onClick(news)}
-      className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-200 overflow-hidden cursor-pointer transform hover:scale-[1.02]"
+      className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer hover:border-gray-300"
     >
       {/* 썸네일 이미지 + 오버레이 텍스트 */}
       <div className="relative h-64 bg-gradient-to-br from-gray-100 to-gray-200">
@@ -80,7 +80,7 @@ const NewsCard: React.FC<NewsCardProps> = ({ news, relatedSpots, onClick }) => {
 
         {/* 타입 배지 */}
         <div className="absolute top-3 left-3">
-          <span className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-bold text-gray-800 shadow-lg">
+          <span className="bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-semibold text-gray-900 shadow-sm border border-white/50">
             {getTypeIcon(news.type)} {news.type === 'new_spot' ? '신규' : news.type === 'trending' ? '인기' : news.type === 'seasonal' ? '계절' : news.type === 'event' ? '이벤트' : '소식'}
           </span>
         </div>
@@ -88,7 +88,7 @@ const NewsCard: React.FC<NewsCardProps> = ({ news, relatedSpots, onClick }) => {
         {/* 이미지 개수 표시 (2개 이상일 때) */}
         {news.images && news.images.length > 1 && (
           <div className="absolute top-3 right-3">
-            <span className="bg-black/60 backdrop-blur-sm text-white px-2.5 py-1 rounded-full text-xs font-semibold shadow-lg">
+            <span className="bg-black/70 backdrop-blur-sm text-white px-2.5 py-1 rounded-full text-xs font-medium shadow-sm">
               📷 {news.images.length}
             </span>
           </div>

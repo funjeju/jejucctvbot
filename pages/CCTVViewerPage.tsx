@@ -87,10 +87,10 @@ const CCTVViewerPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="flex items-center justify-center min-h-screen bg-blue-50">
         <div className="text-center">
           <Spinner />
-          <p className="text-gray-600 mt-4">데이터를 불러오는 중...</p>
+          <p className="text-blue-700 font-semibold text-lg mt-4">데이터를 불러오는 중...</p>
         </div>
       </div>
     );

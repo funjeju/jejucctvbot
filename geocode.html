@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>주소 → GPS 변환 도구</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .status {
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 5px;
+      font-weight: 500;
+    }
+    .status.info {
+      background: #e3f2fd;
+      color: #1976d2;
+      border-left: 4px solid #1976d2;
+    }
+    .status.success {
+      background: #e8f5e9;
+      color: #388e3c;
+      border-left: 4px solid #388e3c;
+    }
+    .status.error {
+      background: #ffebee;
+      color: #d32f2f;
+      border-left: 4px solid #d32f2f;
+    }
+    .status.warning {
+      background: #fff3e0;
+      color: #f57c00;
+      border-left: 4px solid #f57c00;
+    }
+    button {
+      background: #ff6b35;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 600;
+      margin: 10px 5px 10px 0;
+    }
+    button:hover {
+      background: #ff5722;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .log {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      max-height: 500px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-top: 20px;
+    }
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px;
+    }
+    .log-entry.success { color: #388e3c; }
+    .log-entry.error { color: #d32f2f; }
+    .log-entry.info { color: #1976d2; }
+    .progress {
+      margin: 20px 0;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 30px;
+      background: #e0e0e0;
+      border-radius: 15px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff6b35, #ff8c42);
+      transition: width 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-box {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .stat-box.success {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+    .stat-box.error {
+      background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+    }
+    .stat-number {
+      font-size: 36px;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🗺️ 주소 → GPS 좌표 변환 도구</h1>
+    <p>Firebase Firestore의 주소 데이터를 GPS 좌표로 자동 변환합니다.</p>
+
+    <div id="status" class="status info" style="display:none;">
+      준비 중...
+    </div>
+
+    <div>
+      <button id="checkBtn" onclick="checkSpots()">📊 스팟 상태 확인</button>
+      <button id="convertBtn" onclick="startConversion()" disabled>🚀 GPS 변환 시작</button>
+      <button id="stopBtn" onclick="stopConversion()" style="display:none;">⏸️ 중지</button>
+    </div>
+
+    <div class="stats" id="stats" style="display:none;">
+      <div class="stat-box">
+        <div class="stat-label">전체 스팟</div>
+        <div class="stat-number" id="totalSpots">0</div>
+      </div>
+      <div class="stat-box success">
+        <div class="stat-label">GPS 있음</div>
+        <div class="stat-number" id="withGPS">0</div>
+      </div>
+      <div class="stat-box error">
+        <div class="stat-label">GPS 없음</div>
+        <div class="stat-number" id="withoutGPS">0</div>
+      </div>
+    </div>
+
+    <div class="progress" id="progressContainer" style="display:none;">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width: 0%;">0%</div>
+      </div>
+      <p id="progressText" style="text-align:center; margin-top:10px; color:#666;">0 / 0 완료</p>
+    </div>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
+    import { getFirestore, collection, getDocs, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+
+    // Firebase 설정
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDXe9s5bpcCkJQEsIXhGFbqw0yUJTmk4I",
+      authDomain: "jejudatabuilder.firebaseapp.com",
+      projectId: "jejudatabuilder",
+      storageBucket: "jejudatabuilder.firebasestorage.app",
+      messagingSenderId: "927942693421",
+      appId: "1:927942693421:web:87a8abb1dddb8d6bfd7b50",
+      measurementId: "G-S9H31HB4GW"
+    };
+
+    const GOOGLE_MAPS_API_KEY = 'AIzaSyBpD54PnWIgH-tBsR2PQm6lqI4sScBQTQY';
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app, 'databuilder');
+
+    let spotsWithoutGPS = [];
+    let isConverting = false;
+    let shouldStop = false;
+
+    window.checkSpots = async function() {
+      log('📥 Firestore에서 데이터 가져오는 중...', 'info');
+      showStatus('데이터 로딩 중...', 'info');
+
+      try {
+        const spotsCollection = collection(db, 'spots');
+        const snapshot = await getDocs(spotsCollection);
+
+        const allSpots = [];
+        spotsWithoutGPS = [];
+
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          allSpots.push(data);
+
+          const hasGPS = data.location?.latitude && data.location?.longitude;
+
+          if (!hasGPS && data.address) {
+            spotsWithoutGPS.push({
+              id: docSnap.id,
+              place_name: data.place_name,
+              address: data.address,
+              location: data.location || {}
+            });
+          }
+        });
+
+        // 통계 표시
+        document.getElementById('stats').style.display = 'grid';
+        document.getElementById('totalSpots').textContent = allSpots.length;
+        document.getElementById('withGPS').textContent = allSpots.length - spotsWithoutGPS.length;
+        document.getElementById('withoutGPS').textContent = spotsWithoutGPS.length;
+
+        log(`📊 전체 스팟: ${allSpots.length}개`, 'info');
+        log(`✅ GPS 있음: ${allSpots.length - spotsWithoutGPS.length}개`, 'success');
+        log(`❌ GPS 없음: ${spotsWithoutGPS.length}개`, 'error');
+
+        if (spotsWithoutGPS.length === 0) {
+          showStatus('✨ 모든 스팟에 이미 GPS 좌표가 있습니다!', 'success');
+          document.getElementById('convertBtn').disabled = true;
+        } else {
+          showStatus(`🎯 ${spotsWithoutGPS.length}개 스팟을 변환할 준비가 되었습니다.`, 'warning');
+          document.getElementById('convertBtn').disabled = false;
+        }
+
+      } catch (error) {
+        log(`❌ 오류: ${error.message}`, 'error');
+        showStatus('데이터 로딩 실패', 'error');
+      }
+    };
+
+    async function geocodeAddress(address) {
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}&language=ko&region=kr`;
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.status === 'OK' && data.results.length > 0) {
+        const location = data.results[0].geometry.location;
+        return {
+          latitude: location.lat,
+          longitude: location.lng,
+          formatted_address: data.results[0].formatted_address
+        };
+      }
+
+      return null;
+    }
+
+    window.startConversion = async function() {
+      if (spotsWithoutGPS.length === 0) {
+        alert('먼저 "스팟 상태 확인" 버튼을 클릭하세요.');
+        return;
+      }
+
+      if (!confirm(`${spotsWithoutGPS.length}개의 스팟을 변환하시겠습니까?`)) {
+        return;
+      }
+
+      isConverting = true;
+      shouldStop = false;
+      document.getElementById('convertBtn').style.display = 'none';
+      document.getElementById('checkBtn').disabled = true;
+      document.getElementById('stopBtn').style.display = 'inline-block';
+      document.getElementById('progressContainer').style.display = 'block';
+
+      showStatus('🔄 변환 중...', 'info');
+      log('🚀 GPS 변환 시작!', 'info');
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (let i = 0; i < spotsWithoutGPS.length; i++) {
+        if (shouldStop) {
+          log('⏸️ 사용자가 중지했습니다.', 'error');
+          break;
+        }
+
+        const spot = spotsWithoutGPS[i];
+
+        log(`[${i + 1}/${spotsWithoutGPS.length}] ${spot.place_name}`, 'info');
+        log(`   주소: ${spot.address}`, 'info');
+
+        try {
+          const result = await geocodeAddress(spot.address);
+
+          if (result) {
+            const spotRef = doc(db, 'spots', spot.id);
+            await updateDoc(spotRef, {
+              'location.latitude': result.latitude,
+              'location.longitude': result.longitude,
+              'location.formatted_address': result.formatted_address
+            });
+
+            log(`   ✅ 성공: ${result.latitude.toFixed(6)}, ${result.longitude.toFixed(6)}`, 'success');
+            successCount++;
+          } else {
+            log(`   ❌ 변환 실패`, 'error');
+            failCount++;
+          }
+        } catch (error) {
+          log(`   ❌ 오류: ${error.message}`, 'error');
+          failCount++;
+        }
+
+        // 진행률 업데이트
+        const progress = ((i + 1) / spotsWithoutGPS.length * 100).toFixed(0);
+        document.getElementById('progressFill').style.width = progress + '%';
+        document.getElementById('progressFill').textContent = progress + '%';
+        document.getElementById('progressText').textContent = `${successCount + failCount} / ${spotsWithoutGPS.length} 완료 (성공: ${successCount}, 실패: ${failCount})`;
+
+        // API 제한 방지
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      // 완료
+      isConverting = false;
+      document.getElementById('convertBtn').style.display = 'inline-block';
+      document.getElementById('checkBtn').disabled = false;
+      document.getElementById('stopBtn').style.display = 'none';
+
+      const successRate = ((successCount / (successCount + failCount)) * 100).toFixed(1);
+
+      log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+      log('📊 변환 결과 요약', 'info');
+      log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+      log(`✅ 성공: ${successCount}개`, 'success');
+      log(`❌ 실패: ${failCount}개`, 'error');
+      log(`📈 성공률: ${successRate}%`, 'info');
+      log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+
+      showStatus(`✨ 변환 완료! (성공: ${successCount}, 실패: ${failCount})`, 'success');
+
+      // 다시 확인
+      setTimeout(() => {
+        checkSpots();
+      }, 2000);
+    };
+
+    window.stopConversion = function() {
+      if (confirm('변환을 중지하시겠습니까?')) {
+        shouldStop = true;
+      }
+    };
+
+    function log(message, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = message;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function showStatus(message, type) {
+      const statusDiv = document.getElementById('status');
+      statusDiv.textContent = message;
+      statusDiv.className = `status ${type}`;
+      statusDiv.style.display = 'block';
+    }
+
+    // 초기화
+    log('✨ 준비 완료! "스팟 상태 확인" 버튼을 클릭하세요.', 'info');
+  </script>
+</body>
+</html>

@@ -36,7 +36,7 @@ const QuickMenuBar: React.FC<QuickMenuBarProps> = ({ onMenuClick }) => {
   ];
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-4 mb-6">
+    <div className="rounded-xl border-2 border-gray-200 bg-white p-4 mb-6 shadow-md hover:shadow-lg transition-shadow">
       <div className="grid grid-cols-3 gap-3">
         {menuItems.map((item) => (
           <button
@@ -44,11 +44,13 @@ const QuickMenuBar: React.FC<QuickMenuBarProps> = ({ onMenuClick }) => {
             onClick={() => onMenuClick(item.id)}
             className={`
               bg-gradient-to-br ${item.color} ${item.hoverColor}
-              text-white rounded-lg p-4
-              transform transition-all duration-200
-              hover:scale-105 hover:shadow-lg
+              text-white rounded-xl p-5
+              transform transition-all duration-300
+              hover:scale-105 hover:shadow-xl hover:-translate-y-1
               active:scale-95
               flex flex-col items-center justify-center space-y-2
+              border-2 border-white/30 shadow-lg
+              ring-2 ring-white/20
             `}
           >
             <span className="text-3xl">{item.icon}</span>

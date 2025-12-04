@@ -3,6 +3,7 @@ import type { FeedPost, Place } from '../types';
 import FeedCreateModal from './FeedCreateModal';
 import FeedCard from './FeedCard';
 import FeedDetailModal from './FeedDetailModal';
+import SpotDetailView from './SpotDetailView';
 import { collection, query, orderBy, onSnapshot, limit } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -72,6 +73,7 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [selectedFeed, setSelectedFeed] = useState<FeedPost | null>(null);
   const [selectedFeedId, setSelectedFeedId] = useState<string | null>(null);
+  const [selectedSpot, setSelectedSpot] = useState<Place | null>(null);
 
   // 정렬 및 필터링 상태
   const [sortBy, setSortBy] = useState<'upload' | 'photo' | 'distance'>('upload');
@@ -80,6 +82,14 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const t = translations[language];
+
+  // 스팟 클릭 핸들러
+  const handleSpotClick = (spotId: string) => {
+    const spot = spots.find(s => s.place_id === spotId);
+    if (spot) {
+      setSelectedSpot(spot);
+    }
+  };
 
   const handleCreatePostClick = () => {
     if (!user) {
@@ -170,7 +180,10 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
     return null;
   }, [spots]);
 
-  // 지역 목록 생성 (spots 데이터에서 추출)
+  // 중문권역에 포함되는 동들
+  const JUNGMUN_AREAS = ['중문동', '대포동', '월평동', '법환동'];
+
+  // 지역 목록 생성 (spots 데이터에서 추출 + 중문권역 추가)
   const availableRegions = React.useMemo(() => {
     const regions = new Set<string>();
     spots.forEach(spot => {
@@ -178,6 +191,16 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
         regions.add(spot.region);
       }
     });
+
+    // 중문권역 포함 동이 하나라도 있으면 중문권역 추가
+    const hasJungmunArea = spots.some((spot: Place) =>
+      spot.region && JUNGMUN_AREAS.includes(spot.region)
+    );
+
+    if (hasJungmunArea) {
+      regions.add('중문권역');
+    }
+
     const sortedRegions = Array.from(regions).sort();
     console.log('사용 가능한 지역 목록:', sortedRegions);
     return sortedRegions;
@@ -238,7 +261,15 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
     if (selectedRegion !== 'all') {
       result = result.filter((feed: FeedPost) => {
         const feedRegion = getFeedRegion(feed);
-        const match = feedRegion === selectedRegion;
+
+        // 중문권역 선택 시 중문동/대포동/월평동/법환동 모두 포함
+        let match = false;
+        if (selectedRegion === '중문권역') {
+          match = feedRegion ? JUNGMUN_AREAS.includes(feedRegion) : false;
+        } else {
+          match = feedRegion === selectedRegion;
+        }
+
         console.log(`피드 ${feed.id} - 지역: ${feedRegion}, 매칭: ${match}`);
         return match;
       });
@@ -405,6 +436,7 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
                 setSelectedFeedId(feed.id);
               }}
               language={language}
+              onSpotClick={handleSpotClick}
             />
           ))}
         </div>
@@ -429,7 +461,23 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
             setSelectedFeed(null);
             setSelectedFeedId(null);
           }}
+          onSpotClick={handleSpotClick}
         />
+      )}
+
+      {/* 스팟 상세보기 모달 */}
+      {selectedSpot && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <SpotDetailView
+              spot={selectedSpot}
+              onBack={() => setSelectedSpot(null)}
+              onEdit={() => {}}
+              onAddSuggestion={() => {}}
+              onResolveSuggestion={() => {}}
+            />
+          </div>
+        </div>
       )}
 
       {/* 로그인 모달 */}

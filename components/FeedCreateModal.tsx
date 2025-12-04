@@ -416,11 +416,16 @@ const FeedCreateModal: React.FC<FeedCreateModalProps> = ({ spots, language, onCl
       // GPS 기반 주변 추천 장소 찾기
       let nearbySpots: any[] = [];
       if (uploadedMedia.length > 0 && uploadedMedia[0].exif.latitude && uploadedMedia[0].exif.longitude) {
-        nearbySpots = findNearbySpots(
-          uploadedMedia[0].exif.latitude,
-          uploadedMedia[0].exif.longitude,
-          spots
-        );
+        const lat = uploadedMedia[0].exif.latitude;
+        const lon = uploadedMedia[0].exif.longitude;
+        console.log('=== FeedCreateModal - nearbySpots 계산 ===');
+        console.log('GPS 좌표:', lat, lon);
+        console.log('전체 spots 개수:', spots.length);
+        nearbySpots = findNearbySpots(lat, lon, spots);
+        console.log('찾은 nearbySpots:', nearbySpots);
+        console.log('nearbySpots 개수:', nearbySpots.length);
+      } else {
+        console.log('GPS 정보 없음 - nearbySpots 계산 안함');
       }
 
       // Firebase Auth 사용자 정보 사용
@@ -544,24 +549,61 @@ const FeedCreateModal: React.FC<FeedCreateModalProps> = ({ spots, language, onCl
     }
   };
 
-  // 주변 추천 장소 찾기
+  // 주변 추천 장소 찾기 (Attraction 카테고리 기준)
   const findNearbySpots = (lat: number, lon: number, spots: Place[]) => {
-    const spotsWithDistance = spots
+    console.log('findNearbySpots 호출됨');
+    console.log('첫 5개 스팟의 location 구조:', spots.slice(0, 5).map(s => ({
+      name: s.place_name,
+      location: s.location,
+      categories: s.categories
+    })));
+
+    // 1. Attraction 카테고리만 필터링
+    const attractions = spots.filter(spot => {
+      if (spot.categories && spot.categories.length > 0) {
+        return spot.categories.some(cat => cat.includes('Attraction'));
+      }
+      return false;
+    });
+
+    console.log('필터링된 Attraction 개수:', attractions.length);
+    console.log('GPS 있는 Attraction:', attractions.filter(s => s.location?.latitude && s.location?.longitude).length);
+    console.log('첫 5개 Attraction location:', attractions.slice(0, 5).map(s => ({
+      name: s.place_name,
+      location: s.location
+    })));
+
+    // 2. 거리 계산
+    const spotsWithDistance = attractions
       .map(spot => {
-        if (!spot.latitude || !spot.longitude) return null;
-        const distance = calculateDistance(lat, lon, spot.latitude, spot.longitude);
+        if (!spot.location?.latitude || !spot.location?.longitude) return null;
+        const distance = calculateDistance(lat, lon, spot.location.latitude, spot.location.longitude);
         return {
-          id: spot.id,
-          title: spot.title,
-          thumbnailUrl: spot.fileUrl || '',
+          id: spot.place_id,
+          title: spot.place_name,
+          thumbnailUrl: spot.images?.[0]?.url || '',
           distance,
         };
       })
-      .filter(spot => spot !== null && spot.distance <= 5000) // 5km 이내
-      .sort((a, b) => a!.distance - b!.distance)
-      .slice(0, 3);
+      .filter(spot => spot !== null)
+      .sort((a, b) => a!.distance - b!.distance);
 
-    return spotsWithDistance;
+    console.log('거리 계산 완료, 스팟 개수:', spotsWithDistance.length);
+    if (spotsWithDistance.length > 0) {
+      console.log('가장 가까운 3개:', spotsWithDistance.slice(0, 3));
+    }
+
+    // 3. 5km 이내 우선, 없으면 가장 가까운 3개
+    const within5km = spotsWithDistance.filter(spot => spot!.distance <= 5000);
+
+    console.log('5km 이내 스팟 개수:', within5km.length);
+
+    if (within5km.length > 0) {
+      return within5km.slice(0, 3);
+    } else {
+      // 5km 이내에 없으면 가장 가까운 3개
+      return spotsWithDistance.slice(0, 3);
+    }
   };
 
   // Haversine 거리 계산

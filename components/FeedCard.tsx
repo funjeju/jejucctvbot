@@ -9,9 +9,10 @@ interface FeedCardProps {
   feed: FeedPost;
   onClick: () => void;
   language: 'KOR' | 'ENG' | 'CHN';
+  onSpotClick?: (spotId: string) => void; // 스팟 클릭 핸들러
 }
 
-const FeedCard: React.FC<FeedCardProps> = ({ feed, onClick, language }) => {
+const FeedCard: React.FC<FeedCardProps> = ({ feed, onClick, language, onSpotClick }) => {
   const { user } = useAuth();
   const [isLiking, setIsLiking] = useState(false);
   const [isBookmarking, setIsBookmarking] = useState(false);
@@ -20,6 +21,11 @@ const FeedCard: React.FC<FeedCardProps> = ({ feed, onClick, language }) => {
 
   const isLiked = user ? (feed.likedBy?.includes(user.uid) || false) : false;
   const isBookmarked = user ? (feed.bookmarkedBy?.includes(user.uid) || false) : false;
+
+  // 디버깅: nearbySpots 확인
+  console.log('FeedCard - feed.id:', feed.id);
+  console.log('FeedCard - nearbySpots:', feed.nearbySpots);
+  console.log('FeedCard - nearbySpots length:', feed.nearbySpots?.length);
 
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation(); // 카드 클릭 이벤트 방지
@@ -378,6 +384,59 @@ const FeedCard: React.FC<FeedCardProps> = ({ feed, onClick, language }) => {
       {feed.content && (
         <div className="p-3">
           <p className="text-gray-800 text-sm line-clamp-2">{feed.content}</p>
+        </div>
+      )}
+
+      {/* 주변 가볼만한곳 (식당/카페) */}
+      {feed.nearbySpots && feed.nearbySpots.length > 0 && (
+        <div className="px-3 pb-3" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <svg className="w-4 h-4 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+              </svg>
+              <h4 className="text-sm font-bold text-orange-800">
+                {language === 'KOR' ? '🍽️ 주변 가볼만한곳' : language === 'ENG' ? '🍽️ Nearby Places' : '🍽️ 附近推荐'}
+              </h4>
+            </div>
+            <div className="space-y-2">
+              {feed.nearbySpots.map((spot) => (
+                <button
+                  key={spot.id}
+                  onClick={() => onSpotClick?.(spot.id)}
+                  className="w-full flex items-center gap-3 bg-white rounded-lg p-2 hover:bg-orange-50 transition-colors text-left border border-orange-100 hover:border-orange-300"
+                >
+                  {spot.thumbnailUrl ? (
+                    <img
+                      src={spot.thumbnailUrl}
+                      alt={spot.title}
+                      className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                        <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-800 text-sm line-clamp-1">{spot.title}</p>
+                    <p className="text-xs text-orange-600">
+                      {spot.distance < 1000
+                        ? `${Math.round(spot.distance)}m`
+                        : `${(spot.distance / 1000).toFixed(1)}km`}{' '}
+                      {language === 'KOR' ? '거리' : language === 'ENG' ? 'away' : '距离'}
+                    </p>
+                  </div>
+                  <svg className="w-5 h-5 text-orange-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

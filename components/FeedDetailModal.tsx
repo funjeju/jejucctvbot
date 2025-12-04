@@ -10,6 +10,7 @@ interface FeedDetailModalProps {
   spots: Place[];
   language: 'KOR' | 'ENG' | 'CHN';
   onClose: () => void;
+  onSpotClick?: (spotId: string) => void;
 }
 
 const translations = {
@@ -63,7 +64,7 @@ const translations = {
   },
 };
 
-const FeedDetailModal: React.FC<FeedDetailModalProps> = ({ feed, spots, language, onClose }) => {
+const FeedDetailModal: React.FC<FeedDetailModalProps> = ({ feed, spots, language, onClose, onSpotClick }) => {
   const { user } = useAuth();
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [isLiking, setIsLiking] = useState(false);
@@ -644,25 +645,52 @@ const FeedDetailModal: React.FC<FeedDetailModalProps> = ({ feed, spots, language
             {/* 주변 추천 장소 */}
             {feed.nearbySpots && feed.nearbySpots.length > 0 && (
               <div className="p-4">
-                <h3 className="font-semibold text-gray-800 mb-3">{t.nearbySpots}</h3>
-                <div className="space-y-3">
-                  {feed.nearbySpots.map((spot) => (
-                    <div key={spot.id} className="flex gap-3 bg-gray-50 rounded-lg p-2 hover:bg-gray-100 transition-colors cursor-pointer">
-                      {/* 썸네일 */}
-                      <div className="w-20 h-20 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                        {spot.thumbnailUrl && (
-                          <img src={spot.thumbnailUrl} alt={spot.title} className="w-full h-full object-cover" />
+                <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                      <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+                    </svg>
+                    <h3 className="font-bold text-orange-800">{t.nearbySpots}</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {feed.nearbySpots.map((spot) => (
+                      <button
+                        key={spot.id}
+                        onClick={() => onSpotClick?.(spot.id)}
+                        className="w-full flex items-center gap-3 bg-white rounded-lg p-3 hover:bg-orange-50 transition-colors text-left border border-orange-100 hover:border-orange-300"
+                      >
+                        {/* 썸네일 */}
+                        {spot.thumbnailUrl ? (
+                          <img
+                            src={spot.thumbnailUrl}
+                            alt={spot.title}
+                            className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                              <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+                            </svg>
+                          </div>
                         )}
-                      </div>
-                      {/* 정보 */}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-gray-800 line-clamp-2">{spot.title}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          📍 {Math.round(spot.distance)}{t.distance}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                        {/* 정보 */}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-800 line-clamp-1">{spot.title}</p>
+                          <p className="text-sm text-orange-600">
+                            {spot.distance < 1000
+                              ? `${Math.round(spot.distance)}m`
+                              : `${(spot.distance / 1000).toFixed(1)}km`}{' '}
+                            {language === 'KOR' ? '거리' : language === 'ENG' ? 'away' : '距离'}
+                          </p>
+                        </div>
+                        <svg className="w-6 h-6 text-orange-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

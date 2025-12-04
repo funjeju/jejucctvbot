@@ -66,25 +66,56 @@ const deepCloneWithoutUndefined = (input: any): any => {
   return input;
 };
 
-const deepConvertFirestoreData = (input: any): any => {
-  if (Array.isArray(input)) {
-    return input.map((item) => deepConvertFirestoreData(item));
+// ===========================
+// 🔥 GeoPoint 자동 변환 버전
+// ===========================
+function deepConvertFirestoreData(value: any): any {
+  if (value === null || value === undefined) return value;
+
+  // 1) Firestore GeoPoint 처리
+  if (
+    typeof value === "object" &&
+    (
+      (typeof value.latitude === "number" && typeof value.longitude === "number") ||
+      (typeof value._lat === "number" && typeof value._long === "number") ||
+      (typeof value.lat === "function" && typeof value.lng === "function")
+    )
+  ) {
+    const lat =
+      value.latitude ??
+      value._lat ??
+      (typeof value.lat === "function" ? value.lat() : undefined);
+
+    const lng =
+      value.longitude ??
+      value._long ??
+      (typeof value.lng === "function" ? value.lng() : undefined);
+
+    return { latitude: lat, longitude: lng };
   }
 
-  if (input && typeof input === 'object') {
-    if ('seconds' in input && 'nanoseconds' in input && typeof input.seconds === 'number' && typeof input.nanoseconds === 'number') {
-      return { seconds: input.seconds, nanoseconds: input.nanoseconds };
+  // 2) Timestamp → Date 변환
+  if (value?.toDate && typeof value.toDate === "function") {
+    return value.toDate();
+  }
+
+  // 3) 배열 처리
+  if (Array.isArray(value)) {
+    return value.map(v => deepConvertFirestoreData(v));
+  }
+
+  // 4) 일반 객체 처리
+  if (typeof value === "object") {
+    const result: any = {};
+    for (const key in value) {
+      result[key] = deepConvertFirestoreData(value[key]);
     }
-
-    const output: Record<string, any> = {};
-    Object.entries(input).forEach(([key, value]) => {
-      output[key] = deepConvertFirestoreData(value);
-    });
-    return output;
+    return result;
   }
 
-  return input;
-};
+  // 5) 원시값 그대로 반환
+  return value;
+}
 
 export const sanitizePlaceForFirestore = (place: Place): DocumentData => {
   const cloned = deepCloneWithoutUndefined(place) as Record<string, any>;
@@ -100,14 +131,19 @@ export const sanitizePlaceForFirestore = (place: Place): DocumentData => {
   return cloned;
 };
 
-export const parsePlaceFromFirestore = (data: DocumentData, docId: string): Place => {
-  const converted = deepConvertFirestoreData(data) as Record<string, any>;
-  const suggestions = decodeSuggestionsMap(converted.suggestions);
+// =========================
+// 🔥 Place 변환 함수 (핵심)
+// =========================
+export function parsePlaceFromFirestore(data: any, docId: string): Place {
+  const d = deepConvertFirestoreData(data);
 
   return {
-    ...converted,
-    place_id: converted.place_id ?? docId,
-    suggestions,
+    place_id: docId,
+    place_name: d.place_name,
+    categories: d.categories || [],
+    images: d.images || [],
+    location: d.location || null,     // ← 🔥 드디어 latitude/longitude 형태로 들어옴
+    ...d,                             // 다른 필드 그대로
   } as Place;
-};
+}
 
