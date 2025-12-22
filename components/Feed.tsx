@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { FeedPost, Place } from '../types';
+import type { FeedPost, Place, BusinessCategory } from '../types';
 import FeedCreateModal from './FeedCreateModal';
 import FeedCard from './FeedCard';
 import FeedDetailModal from './FeedDetailModal';
@@ -78,6 +78,7 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
   // 정렬 및 필터링 상태
   const [sortBy, setSortBy] = useState<'upload' | 'photo' | 'distance'>('upload');
   const [selectedRegion, setSelectedRegion] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<BusinessCategory | 'all'>('all');
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
@@ -206,13 +207,13 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
     return sortedRegions;
   }, [spots]);
 
-  // Firestore에서 피드 실시간 로드
+  // Firestore에서 피드 실시간 로드 - 초기 10개만
   useEffect(() => {
-    console.log('Feed: Firestore 피드 리스너 설정 중...');
+    console.log('Feed: Firestore 피드 리스너 설정 중... (초기 10개)');
     const q = query(
       collection(db, 'feeds'),
       orderBy('createdAt', 'desc'),
-      limit(50)
+      limit(10)
     );
 
     const unsubscribe = onSnapshot(
@@ -228,7 +229,7 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
         });
         setFeeds(feedsArray);
         setIsLoading(false);
-        console.log(`Feed: ${feedsArray.length}개의 피드 로드됨`);
+        console.log(`Feed: ${feedsArray.length}개의 피드 로드됨 (초기)`);
       },
       (error) => {
         console.error('Feed 로딩 실패:', error);
@@ -276,6 +277,14 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
       console.log('필터링 후 피드 수:', result.length);
     }
 
+    // 업종 필터링
+    if (selectedCategory !== 'all') {
+      result = result.filter((feed: FeedPost) =>
+        feed.userRole === 'store' && feed.businessCategory === selectedCategory
+      );
+      console.log(`업종 필터링 (${selectedCategory}) 후 피드 수:`, result.length);
+    }
+
     // 정렬
     if (sortBy === 'upload') {
       // 최근 업로드순 (기본값, createdAt 기준)
@@ -320,7 +329,7 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
     }
 
     return result;
-  }, [feeds, sortBy, selectedRegion, userLocation]);
+  }, [feeds, sortBy, selectedRegion, selectedCategory, userLocation]);
 
   if (isLoading) {
     return (
@@ -394,6 +403,24 @@ const Feed: React.FC<FeedProps> = ({ spots, language }) => {
                   {region}
                 </option>
               ))}
+            </select>
+          </div>
+
+          {/* 업종 필터 드롭다운 */}
+          <div className="flex-1 min-w-[140px]">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value as BusinessCategory | 'all')}
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+            >
+              <option value="all">{language === 'KOR' ? '전체 업종' : language === 'ENG' ? 'All Categories' : '全部类别'}</option>
+              <option value="서핑">🏄 {language === 'KOR' ? '서핑' : language === 'ENG' ? 'Surfing' : '冲浪'}</option>
+              <option value="스냅">📸 {language === 'KOR' ? '스냅' : language === 'ENG' ? 'Snap Photo' : '快拍'}</option>
+              <option value="낚시">🎣 {language === 'KOR' ? '낚시' : language === 'ENG' ? 'Fishing' : '钓鱼'}</option>
+              <option value="공예">🎨 {language === 'KOR' ? '공예' : language === 'ENG' ? 'Craft' : '工艺'}</option>
+              <option value="박물관">🏛️ {language === 'KOR' ? '박물관' : language === 'ENG' ? 'Museum' : '博物馆'}</option>
+              <option value="꽃관련">🌸 {language === 'KOR' ? '꽃관련' : language === 'ENG' ? 'Flowers' : '花卉'}</option>
+              <option value="기타체험">✨ {language === 'KOR' ? '기타체험' : language === 'ENG' ? 'Other Activities' : '其他体验'}</option>
             </select>
           </div>
         </div>

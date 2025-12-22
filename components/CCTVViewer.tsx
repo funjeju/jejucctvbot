@@ -8,7 +8,6 @@ import MyPage from './MyPage';
 import Navigation from './Navigation';
 import DoodleInputModal from './DoodleInputModal';
 import DoodleOverlay from './DoodleOverlay';
-import ChatArchiveBoard from './ChatArchiveBoard';
 import TripPlannerModal from './TripPlannerModal';
 import Chatbot from './Chatbot';
 import { collection, query, onSnapshot, addDoc, deleteDoc, doc, where, Timestamp } from 'firebase/firestore';
@@ -73,7 +72,7 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
   const [selectedCCTV, setSelectedCCTV] = useState<WeatherSource | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [language, setLanguage] = useState<'KOR' | 'ENG' | 'CHN'>('KOR');
-  const [currentPage, setCurrentPage] = useState<'feed' | 'cam' | 'tips' | 'mypage'>('cam');
+  const [currentPage, setCurrentPage] = useState<'feed' | 'cam' | 'tips' | 'mypage'>('feed');
   const [doodlesByVideo, setDoodlesByVideo] = useState<Record<string, Doodle[]>>({});
   const [isDoodleModalOpen, setIsDoodleModalOpen] = useState(false);
   const [isTripPlannerOpen, setIsTripPlannerOpen] = useState(false);
@@ -200,8 +199,14 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
   }, []);
 
 
-  // Firestore에서 weatherSources 실시간 로드
+  // Firestore에서 weatherSources 실시간 로드 - 'cam' 페이지 진입 시에만
   useEffect(() => {
+    // 'cam' 페이지가 아니면 CCTV 목록 불러오지 않음
+    if (currentPage !== 'cam') {
+      setIsLoading(false);
+      return;
+    }
+
     console.log('WeatherSources Firestore 리스너 설정 중...');
     const q = query(collection(db, 'weatherSources'));
 
@@ -253,7 +258,7 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [currentPage]);
 
   // Firestore에서 낙서 실시간 로드 및 만료된 낙서 자동 삭제
   useEffect(() => {
@@ -363,26 +368,13 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
     setSelectedCCTV(cctv);
   };
 
-  if (isLoading) {
+  // CCTV 페이지에서만 로딩/에러 화면 표시
+  if (currentPage === 'cam' && isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-blue-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-orange-500 mx-auto mb-4"></div>
           <p className="text-blue-700 font-semibold text-lg">{t.loading}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (cctvs.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-blue-50">
-        <div className="text-center max-w-md bg-white rounded-2xl p-8 shadow-xl border-2 border-blue-300">
-          <svg className="w-20 h-20 text-orange-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-          <h2 className="text-2xl font-bold text-blue-700 mb-2">{t.noCCTV}</h2>
-          <p className="text-orange-600">{t.noCCTVDesc}</p>
         </div>
       </div>
     );
@@ -413,6 +405,19 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
           {/* Cam & Chat 페이지 */}
           {currentPage === 'cam' && (
             <>
+              {/* CCTV 목록이 없을 때 */}
+              {cctvs.length === 0 ? (
+                <div className="flex items-center justify-center min-h-[70vh]">
+                  <div className="text-center max-w-md bg-white rounded-2xl p-8 shadow-xl border-2 border-blue-300">
+                    <svg className="w-20 h-20 text-orange-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <h2 className="text-2xl font-bold text-blue-700 mb-2">{t.noCCTV}</h2>
+                    <p className="text-orange-600">{t.noCCTVDesc}</p>
+                  </div>
+                </div>
+              ) : (
+                <>
               {/* 헤더 */}
               <header className="bg-blue-500 shadow-xl rounded-xl p-3 sm:p-5 text-white">
                 {/* 최상단: 제목 + 로고 + 라이브 카운트 */}
@@ -567,6 +572,8 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
                   <div className="hidden lg:block h-32"></div>
                 </>
               )}
+                </>
+              )}
             </>
           )}
 
@@ -578,9 +585,6 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
           {/* AI 페이지 */}
           {currentPage === 'tips' && (
             <div className="space-y-4">
-              {/* 채팅 아카이브 보드 */}
-              <ChatArchiveBoard language={language} />
-
               {/* AI 여행일정 버튼 */}
               <button
                 className="w-full bg-blue-500 shadow-xl rounded-xl p-6 hover:bg-blue-600 hover:shadow-2xl transition-all hover:scale-[1.02] border-2 border-blue-300"

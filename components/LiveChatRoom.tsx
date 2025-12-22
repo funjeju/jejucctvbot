@@ -6,7 +6,6 @@ import { GoogleGenAI } from '@google/genai';
 import { useAuth } from '../contexts/AuthContext';
 import { getCurrentWeather, JEJU_WEATHER_STATIONS } from '../services/weatherService';
 import { claimPointBox, createPointBox, deletePointBox } from '../services/pointService';
-import { fetchArchivedMessages, getPreviousTimeSlot, getTimeSlot } from '../services/archiveService';
 
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
@@ -125,10 +124,8 @@ const LiveChatRoom: React.FC<LiveChatRoomProps> = ({ cctv, spots, orooms, news, 
   const isInitialLoad = useRef(true);
 
   // 무한 스크롤 관련 상태
-  const [archivedMessages, setArchivedMessages] = useState<ChatMessage[]>([]);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
-  const [loadedHours, setLoadedHours] = useState(0); // 로드된 시간 추적
-  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
 
   const t = chatTranslations[language];
   const { userProfile } = useAuth();
@@ -218,64 +215,6 @@ const LiveChatRoom: React.FC<LiveChatRoomProps> = ({ cctv, spots, orooms, news, 
 
   // 스크롤 이벤트 제거 - 수동 버튼으로 변경
 
-  // 이전 1시간 메시지 로드 함수
-  const loadOlderMessages = async () => {
-    if (isLoadingOlder || !hasMoreMessages) return;
-
-    // 제한 체크: 3시간 또는 1000개
-    const totalMessages = archivedMessages.length + messages.length;
-    if (loadedHours >= 3 || totalMessages >= 1000) {
-      setHasMoreMessages(false);
-      console.log('최대 로드 한도 도달 (3시간 또는 1000개)');
-      return;
-    }
-
-    setIsLoadingOlder(true);
-
-    try {
-      // 1시간 전 시작 시간 계산
-      const startTime = new Date();
-      startTime.setHours(startTime.getHours() - (loadedHours + 2)); // 현재 1시간 + 로드할 1시간
-      const endTime = new Date();
-      endTime.setHours(endTime.getHours() - (loadedHours + 1));
-
-      console.log(`${loadedHours + 1}시간 전 메시지 로드 중...`);
-
-      // 해당 시간대의 모든 30분 슬롯 로드
-      const timeSlots: string[] = [];
-      const current = new Date(startTime);
-
-      while (current < endTime) {
-        timeSlots.push(getTimeSlot(current));
-        current.setMinutes(current.getMinutes() + 30);
-      }
-
-      // 모든 슬롯에서 메시지 로드
-      const allArchived: ChatMessage[] = [];
-      for (const slot of timeSlots) {
-        const archived = await fetchArchivedMessages(slot);
-        allArchived.push(...archived);
-      }
-
-      if (allArchived.length > 0) {
-        // 시간순 정렬
-        allArchived.sort((a, b) => a.timestamp.seconds - b.timestamp.seconds);
-
-        // 아카이브된 메시지를 앞에 추가
-        setArchivedMessages(prev => [...allArchived, ...prev]);
-        setLoadedHours(prev => prev + 1);
-        console.log(`${allArchived.length}개의 아카이브 메시지 로드 완료 (${loadedHours + 1}시간)`);
-      } else {
-        // 해당 시간대에 메시지가 없으면 다음 시간대 시도
-        setLoadedHours(prev => prev + 1);
-        console.log(`${loadedHours + 1}시간 전 메시지 없음`);
-      }
-    } catch (error) {
-      console.error('이전 메시지 로드 실패:', error);
-    } finally {
-      setIsLoadingOlder(false);
-    }
-  };
 
   // 스크롤을 최하단으로 이동
   const scrollToBottom = () => {
@@ -1093,41 +1032,13 @@ ${candidateOrooms.slice(0, 10).map((oroom, idx) =>
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto p-4 space-y-3 bg-blue-50"
       >
-        {/* 이전 대화 내용 보기 버튼 */}
-        {hasMoreMessages && !isLoadingOlder && (
-          <div className="text-center py-4">
-            <button
-              onClick={loadOlderMessages}
-              className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-xl"
-            >
-              📜 이전 대화 내용 보기 ({loadedHours < 3 ? `${3 - loadedHours}시간 더 가능` : '최대'})
-            </button>
-          </div>
-        )}
-
-        {/* 로딩 인디케이터 */}
-        {isLoadingOlder && (
-          <div className="text-center py-4">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-orange-500"></div>
-            <p className="text-sm text-blue-700 font-semibold mt-2">이전 메시지 로드 중...</p>
-          </div>
-        )}
-
-        {/* 더 이상 메시지가 없을 때 */}
-        {!hasMoreMessages && (archivedMessages.length > 0 || messages.length > 0) && (
-          <div className="text-center py-3">
-            <p className="text-xs text-gray-400">📜 최대 로드 한도 도달 (3시간 또는 1000개)</p>
-          </div>
-        )}
-
-        {archivedMessages.length === 0 && messages.length === 0 && (
+        {messages.length === 0 && (
           <div className="text-center text-gray-400 mt-10">
             <p>{t.noMessages}</p>
           </div>
         )}
 
-        {/* 아카이브된 메시지 + 현재 메시지 합쳐서 표시 */}
-        {[...archivedMessages, ...messages].map((msg) => {
+        {messages.map((msg) => {
           const isMyMessage = msg.userId === userId;
           const isAI = msg.type === 'ai';
           const isPointBox = (msg as any).type === 'pointbox';

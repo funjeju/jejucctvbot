@@ -120,7 +120,7 @@ const CCTVList: React.FC<CCTVListProps> = ({ cctvs, selectedCCTV, onSelect, lang
       </div>
 
       {/* CCTV 목록 */}
-      <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2">
+      <div className="flex gap-2 sm:gap-3 overflow-x-auto p-4 -mx-4 sm:mx-0">
         {filteredCCTVs.map((cctv) => {
           const isSelected = selectedCCTV?.id === cctv.id;
           const shortTitle = getShortTitle(cctv);
@@ -131,16 +131,35 @@ const CCTVList: React.FC<CCTVListProps> = ({ cctvs, selectedCCTV, onSelect, lang
               key={cctv.id}
               onClick={() => onSelect(cctv)}
               className={`
-                flex-shrink-0 px-3 py-2.5 sm:px-5 sm:py-4 rounded-xl border-2 transition-all duration-200
+                flex-shrink-0 px-2 py-2 sm:px-3 sm:py-3 rounded-xl border-2 transition-all duration-200
                 ${isSelected
-                  ? 'border-orange-500 bg-orange-50 shadow-xl scale-105'
+                  ? 'border-orange-500 bg-orange-50 shadow-xl scale-105 z-10'
                   : 'border-blue-200 bg-white hover:border-blue-400 hover:bg-blue-50'
                 }
               `}
               title={fullTitle}
             >
               {/* 모바일: 간략 버전 */}
-              <div className="sm:hidden flex flex-col items-center gap-1 min-w-[60px]">
+              <div className="sm:hidden flex flex-col items-center gap-1 min-w-[50px]">
+                {/* CCTV 아이콘 */}
+                <div className={`
+                  w-6 h-6 rounded-full flex items-center justify-center
+                  ${isSelected ? 'bg-orange-500 text-white shadow-lg' : 'bg-blue-100 text-blue-600'}
+                `}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                {/* 간략한 제목 */}
+                <p className={`text-[10px] font-bold text-center ${isSelected ? 'text-orange-600' : 'text-blue-700'}`}>
+                  {shortTitle}
+                </p>
+                {/* LIVE 표시 */}
+                <span className={`w-1 h-1 rounded-full ${isSelected ? 'bg-orange-500 animate-pulse shadow-lg' : 'bg-blue-300'}`}></span>
+              </div>
+
+              {/* PC: 별칭 버전 (모바일과 동일하게) */}
+              <div className="hidden sm:flex flex-col items-center gap-1 min-w-[70px]">
                 {/* CCTV 아이콘 */}
                 <div className={`
                   w-8 h-8 rounded-full flex items-center justify-center
@@ -150,32 +169,13 @@ const CCTVList: React.FC<CCTVListProps> = ({ cctvs, selectedCCTV, onSelect, lang
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                 </div>
-                {/* 간략한 제목 */}
+                {/* 간략한 제목 (별칭) */}
                 <p className={`text-xs font-bold text-center ${isSelected ? 'text-orange-600' : 'text-blue-700'}`}>
                   {shortTitle}
                 </p>
                 {/* LIVE 표시 */}
-                <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-orange-500 animate-pulse shadow-lg' : 'bg-blue-300'}`}></span>
-              </div>
-
-              {/* PC: 별칭 버전 (모바일과 동일하게) */}
-              <div className="hidden sm:flex flex-col items-center gap-1 min-w-[80px]">
-                {/* CCTV 아이콘 */}
-                <div className={`
-                  w-10 h-10 rounded-full flex items-center justify-center
-                  ${isSelected ? 'bg-orange-500 text-white shadow-lg' : 'bg-blue-100 text-blue-600'}
-                `}>
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                {/* 간략한 제목 (별칭) */}
-                <p className={`text-sm font-bold text-center ${isSelected ? 'text-orange-600' : 'text-blue-700'}`}>
-                  {shortTitle}
-                </p>
-                {/* LIVE 표시 */}
-                <span className="flex items-center gap-1 text-xs text-red-600">
-                  <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-orange-500 animate-pulse shadow-lg' : 'bg-blue-300'}`}></span>
+                <span className="flex items-center gap-1 text-[10px] text-red-600">
+                  <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-orange-500 animate-pulse shadow-lg' : 'bg-blue-300'}`}></span>
                   {isSelected && 'LIVE'}
                 </span>
               </div>

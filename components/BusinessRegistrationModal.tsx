@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { collection, addDoc, Timestamp, doc, setDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import type { BusinessCategory } from '../types';
 
 interface BusinessRegistrationModalProps {
   onClose: () => void;
@@ -13,6 +14,8 @@ const BusinessRegistrationModal: React.FC<BusinessRegistrationModalProps> = ({ o
   const [businessName, setBusinessName] = useState('');
   const [businessAddress, setBusinessAddress] = useState('');
   const [businessPhone, setBusinessPhone] = useState('');
+  const [businessCategory, setBusinessCategory] = useState<BusinessCategory>('기타체험');
+  const [businessWebsite, setBusinessWebsite] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 사업자 번호 형식 검증 (간단한 형식 체크)
@@ -68,15 +71,17 @@ const BusinessRegistrationModal: React.FC<BusinessRegistrationModalProps> = ({ o
     setIsSubmitting(true);
 
     try {
-      // 1. userProfiles 컬렉션 업데이트 (문서가 없으면 생성)
-      const userProfileRef = doc(db, 'userProfiles', user.uid);
+      // 1. users 컬렉션 업데이트 (AuthContext가 사용하는 컬렉션)
+      const userProfileRef = doc(db, 'users', user.uid);
       await setDoc(userProfileRef, {
         role: 'store',
         businessNumber: cleanedNumber,
         businessName: businessName.trim(),
         businessAddress: businessAddress.trim(),
         businessPhone: businessPhone.trim(),
-        businessApproved: false, // 승인 대기 상태
+        businessCategory: businessCategory,
+        businessWebsite: businessWebsite.trim(),
+        businessApproved: true, // 테스트용: 바로 승인
         updatedAt: Timestamp.now(),
       }, { merge: true }); // merge: true로 문서가 없으면 생성, 있으면 업데이트
 
@@ -89,11 +94,13 @@ const BusinessRegistrationModal: React.FC<BusinessRegistrationModalProps> = ({ o
         businessName: businessName.trim(),
         businessAddress: businessAddress.trim(),
         businessPhone: businessPhone.trim(),
+        businessCategory: businessCategory,
+        businessWebsite: businessWebsite.trim(),
         status: 'pending', // pending, approved, rejected
         appliedAt: Timestamp.now(),
       });
 
-      alert('사업자 인증 신청이 완료되었습니다.\n관리자 승인 후 쿠폰 발급 기능을 사용하실 수 있습니다.');
+      alert('사업자 등록이 완료되었습니다.\n이제 피드에 업체 정보가 표시되며 쿠폰 발급 기능을 사용하실 수 있습니다.');
       onClose();
     } catch (error) {
       console.error('사업자 등록 실패:', error);
@@ -127,9 +134,9 @@ const BusinessRegistrationModal: React.FC<BusinessRegistrationModalProps> = ({ o
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
             <div>
-              <p className="text-sm font-medium text-blue-800">사업자 인증 안내</p>
+              <p className="text-sm font-medium text-blue-800">사업자 등록 안내</p>
               <p className="text-xs text-blue-600 mt-1">
-                사업자 정보를 입력하시면 관리자가 검토 후 승인합니다. 승인 후 쿠폰 발급 기능을 사용하실 수 있습니다.
+                사업자 정보를 입력하시면 피드에 업체 정보가 표시되며 쿠폰 발급 기능을 사용하실 수 있습니다.
               </p>
             </div>
           </div>
@@ -204,6 +211,46 @@ const BusinessRegistrationModal: React.FC<BusinessRegistrationModalProps> = ({ o
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               required
             />
+          </div>
+
+          {/* 업종 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              업종 <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={businessCategory}
+              onChange={(e) => setBusinessCategory(e.target.value as BusinessCategory)}
+              disabled={isSubmitting}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            >
+              <option value="서핑">🏄 서핑</option>
+              <option value="스냅">📸 스냅</option>
+              <option value="낚시">🎣 낚시</option>
+              <option value="공예">🎨 공예</option>
+              <option value="박물관">🏛️ 박물관</option>
+              <option value="꽃관련">🌸 꽃관련</option>
+              <option value="기타체험">✨ 기타체험</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">사업자의 주요 업종을 선택해주세요</p>
+          </div>
+
+          {/* 웹사이트 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              웹사이트 URL
+            </label>
+            <input
+              type="url"
+              value={businessWebsite}
+              onChange={(e) => setBusinessWebsite(e.target.value)}
+              placeholder="예: https://www.example.com"
+              maxLength={200}
+              disabled={isSubmitting}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">선택사항: 업체 웹사이트 주소를 입력해주세요</p>
           </div>
 
           {/* 버튼 */}

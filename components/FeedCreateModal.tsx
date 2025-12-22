@@ -429,7 +429,7 @@ const FeedCreateModal: React.FC<FeedCreateModalProps> = ({ spots, language, onCl
       }
 
       // Firebase Auth 사용자 정보 사용
-      const feedDoc = await addDoc(collection(db, 'feeds'), {
+      const feedData: any = {
         userId: user.uid,
         username: userProfile.displayName || user.email || '사용자',
         userAvatar: userProfile.photoURL || user.photoURL,
@@ -443,7 +443,17 @@ const FeedCreateModal: React.FC<FeedCreateModalProps> = ({ spots, language, onCl
         commentList: [],
         feedType,
         nearbySpots,
-      });
+      };
+
+      // 사업자인 경우에만 사업자 정보 추가
+      if (userProfile.role === 'store') {
+        feedData.userRole = userProfile.role;
+        feedData.businessName = userProfile.businessName;
+        feedData.businessCategory = userProfile.businessCategory;
+        feedData.businessWebsite = userProfile.businessWebsite;
+      }
+
+      const feedDoc = await addDoc(collection(db, 'feeds'), feedData);
 
       // 포인트 지급 로직
       let totalPoints = 0;

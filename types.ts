@@ -565,6 +565,12 @@ export interface FeedMedia {
   height?: number;
 }
 
+// 사용자 역할 타입
+export type UserRole = 'user' | 'store' | 'admin';
+
+// 사업자 업종 타입
+export type BusinessCategory = '서핑' | '스냅' | '낚시' | '공예' | '박물관' | '꽃관련' | '기타체험';
+
 export interface FeedComment {
   id: string;
   userId: string;
@@ -578,6 +584,10 @@ export interface FeedPost {
   userId: string;
   username: string;
   userAvatar?: string;
+  userRole?: UserRole; // 사용자 역할 (사업자 여부 확인용)
+  businessName?: string; // 사업자명 (사업자인 경우)
+  businessCategory?: BusinessCategory; // 업종 (사업자인 경우)
+  businessWebsite?: string; // 웹사이트 URL (사업자인 경우)
   content: string; // 최대 300자
   media: FeedMedia[]; // 이미지 최대 5개, 비디오 1개
   timestamp: Timestamp;
@@ -602,6 +612,9 @@ export interface FeedPost {
 export type UserRole = 'user' | 'store' | 'admin';
 
 // 사용자 프로필 인터페이스
+// 사업자 업종 타입
+export type BusinessCategory = '서핑' | '스냅' | '낚시' | '공예' | '박물관' | '꽃관련' | '기타체험';
+
 export interface UserProfile {
   uid: string; // Firebase Auth UID
   email: string;
@@ -614,6 +627,8 @@ export interface UserProfile {
   businessName?: string; // 상호명
   businessAddress?: string; // 사업장 주소
   businessPhone?: string; // 연락처
+  businessCategory?: BusinessCategory; // 업종
+  businessWebsite?: string; // 웹사이트 URL
   businessApproved?: boolean; // 관리자 승인 여부
   businessApprovedAt?: Timestamp; // 승인 날짜
   businessApprovedBy?: string; // 승인한 관리자 UID
