@@ -207,7 +207,6 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
       return;
     }
 
-    console.log('WeatherSources Firestore 리스너 설정 중...');
     const q = query(collection(db, 'weatherSources'));
 
     const unsubscribe = onSnapshot(
@@ -216,7 +215,6 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
         const cctvArray: WeatherSource[] = [];
         snapshot.forEach((doc) => {
           const data = doc.data();
-          // YouTube URL이거나, showInCamChat이 true인 항목만 추가
           const isYouTube = data.youtubeUrl && data.youtubeUrl.trim() !== '' &&
             (data.youtubeUrl.includes('youtube.com') || data.youtubeUrl.includes('youtu.be'));
           const showInCamChat = data.showInCamChat === true;
@@ -239,17 +237,13 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
           }
         });
         setCCTVs(cctvArray);
-        setIsLoading(false);
 
-        // 랜덤 CCTV 선택 (CCTV 목록이 있고, 아직 선택된 CCTV가 없을 때만)
         if (cctvArray.length > 0 && !selectedCCTV) {
           const randomIndex = Math.floor(Math.random() * cctvArray.length);
           setSelectedCCTV(cctvArray[randomIndex]);
-          console.log(`랜덤 CCTV 선택: ${cctvArray[randomIndex].title}`);
         }
 
-        console.log(`Firestore에서 ${cctvArray.length}개의 날씨 CCTV를 불러왔습니다.`);
-        console.log('CCTV 데이터 샘플:', cctvArray[0]); // 첫 번째 CCTV 데이터 확인
+        setIsLoading(false);
       },
       (error) => {
         console.error('WeatherSources 로딩 실패:', error);
@@ -260,36 +254,32 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
     return () => unsubscribe();
   }, [currentPage]);
 
-  // Firestore에서 낙서 실시간 로드 및 만료된 낙서 자동 삭제
+  // Firestore에서 낙서 실시간 로드 - cam 페이지 + 선택된 CCTV에 대해서만
   useEffect(() => {
-    console.log('🔔 [DOODLE LISTENER] Firestore 리스너 설정 중...');
-    const q = query(collection(db, 'doodles'));
+    // cam 페이지가 아니거나 선택된 CCTV가 없으면 구독 안 함
+    if (currentPage !== 'cam' || !selectedCCTV) {
+      setDoodlesByVideo({});
+      return;
+    }
+
+    const videoId = selectedCCTV.id;
+    const q = query(
+      collection(db, 'doodles'),
+      where('videoId', '==', videoId)
+    );
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        console.log(`🔔 [DOODLE LISTENER] 스냅샷 수신! 총 ${snapshot.size}개 문서`);
         const now = Date.now();
-        const doodlesByVideoTemp: Record<string, Doodle[]> = {};
+        const doodlesForVideo: Doodle[] = [];
 
         snapshot.forEach((docSnapshot) => {
           const data = docSnapshot.data();
           const expiresAt = data.expiresAt || 0;
 
-          console.log(`📄 [DOODLE LISTENER] 문서 ${docSnapshot.id}:`, {
-            videoId: data.videoId,
-            type: data.type,
-            expiresAt: new Date(expiresAt).toISOString(),
-            now: new Date(now).toISOString(),
-            expired: expiresAt < now
-          });
-
-          // 만료된 낙서는 Firestore에서 삭제
+          // 만료된 낙서는 렌더링에서 제외 (삭제는 서버에서)
           if (expiresAt < now) {
-            console.log(`❌ [DOODLE LISTENER] 만료된 낙서 삭제: ${docSnapshot.id}`);
-            deleteDoc(doc(db, 'doodles', docSnapshot.id)).catch((error) => {
-              console.error('만료된 낙서 삭제 실패:', error);
-            });
             return;
           }
 
@@ -303,9 +293,8 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
             createdAt: data.createdAt,
             duration: data.duration,
             sessionId: data.sessionId,
-            position: data.position, // 저장된 위치
-            widthPercent: data.widthPercent, // 저장된 크기 (화면 너비 대비 %)
-            // 쿠폰 필드
+            position: data.position,
+            widthPercent: data.widthPercent,
             couponTitle: data.couponTitle,
             couponDescription: data.couponDescription,
             storeName: data.storeName,
@@ -314,25 +303,18 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
             claimedBy: data.claimedBy || [],
           };
 
-          const videoId = data.videoId;
-          if (!doodlesByVideoTemp[videoId]) {
-            doodlesByVideoTemp[videoId] = [];
-          }
-          doodlesByVideoTemp[videoId].push(doodle);
-          console.log(`✅ [DOODLE LISTENER] videoId ${videoId}에 낙서 추가`);
+          doodlesForVideo.push(doodle);
         });
 
-        setDoodlesByVideo(doodlesByVideoTemp);
-        console.log('✅ [DOODLE LISTENER] 최종 state:', doodlesByVideoTemp);
-        console.log('✅ [DOODLE LISTENER] videoId별 개수:', Object.keys(doodlesByVideoTemp).map(vid => `${vid}: ${doodlesByVideoTemp[vid].length}개`));
+        setDoodlesByVideo({ [videoId]: doodlesForVideo });
       },
       (error) => {
-        console.error('❌ [DOODLE LISTENER] Doodles 로딩 실패:', error);
+        console.error('Doodles 로딩 실패:', error);
       }
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [currentPage, selectedCCTV]);
 
   // 만료된 낙서 정기 체크 (10초마다)
   useEffect(() => {
@@ -480,6 +462,7 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
                           // YouTube 영상은 플레이어에서 재생
                           <div className="relative w-full aspect-video overflow-visible">
                             <YouTubePlayer
+                              key={selectedCCTV.youtubeUrl}
                               videoUrl={selectedCCTV.youtubeUrl}
                               title={selectedCCTV.title}
                             />
