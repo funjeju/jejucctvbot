@@ -5,6 +5,46 @@ import { db } from '../services/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import LoginModal from './LoginModal';
 
+// 말풍선 위치 CSS 클래스 헬퍼 함수
+const getBubblePositionClass = (position: string) => {
+  const positions: { [key: string]: string } = {
+    'top-left': 'top-2 left-2',
+    'top-center': 'top-2 left-1/2 -translate-x-1/2',
+    'top-right': 'top-2 right-2',
+    'top-left-2': 'top-[25%] left-2',
+    'top-center-2': 'top-[25%] left-1/2 -translate-x-1/2',
+    'top-right-2': 'top-[25%] right-2',
+    'center-left': 'top-1/2 -translate-y-1/2 left-2',
+    'center': 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+    'center-right': 'top-1/2 -translate-y-1/2 right-2',
+    'bottom-left': 'bottom-[25%] left-2',
+    'bottom-center': 'bottom-[25%] left-1/2 -translate-x-1/2',
+    'bottom-right': 'bottom-[25%] right-2',
+    'bottom-left-2': 'bottom-4 left-2',
+    'bottom-center-2': 'bottom-4 left-1/2 -translate-x-1/2',
+    'bottom-right-2': 'bottom-4 right-2',
+  };
+  return positions[position] || 'bottom-4 left-1/2 -translate-x-1/2';
+};
+
+// 말풍선 꼬리 위치 클래스
+const getBubbleTailClass = (position: string) => {
+  if (position.includes('top')) return '-bottom-2 left-1/2 -translate-x-1/2';
+  if (position.includes('bottom')) return '-top-2 left-1/2 -translate-x-1/2';
+  if (position.includes('left') && position.includes('center')) return 'top-1/2 -translate-y-1/2 -right-2';
+  if (position.includes('right') && position.includes('center')) return 'top-1/2 -translate-y-1/2 -left-2';
+  return '-bottom-2 left-1/2 -translate-x-1/2';
+};
+
+// 말풍선 꼬리 방향 (border)
+const getBubbleTailBorderClass = (position: string) => {
+  if (position.includes('top')) return 'border-t-8 border-t-white';
+  if (position.includes('bottom')) return 'border-b-8 border-b-white';
+  if (position.includes('left') && position.includes('center')) return 'border-l-8 border-l-white';
+  if (position.includes('right') && position.includes('center')) return 'border-r-8 border-r-white';
+  return 'border-t-8 border-t-white';
+};
+
 interface FeedCardProps {
   feed: FeedPost;
   onClick: () => void;
@@ -19,6 +59,16 @@ const FeedCard: React.FC<FeedCardProps> = ({ feed, onClick, language, onSpotClic
   const [showComments, setShowComments] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [showAllSpots, setShowAllSpots] = useState(false);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [isBusinessInfoModalOpen, setIsBusinessInfoModalOpen] = useState(false);
+
+  // 데모용: 예약/특가 시스템 여부
+  const hasReservationSystem = true; // 데모용
+  const hasSpecialOffer = true; // 데모용
+
+  // CTA 버튼 개수 계산
+  const buttonCount = 2 + (hasReservationSystem ? 1 : 0) + (hasSpecialOffer ? 1 : 0);
+  const gridColsClass = buttonCount === 2 ? 'grid-cols-2' : buttonCount === 3 ? 'grid-cols-3' : 'grid-cols-4';
 
   const isLiked = user ? (feed.likedBy?.includes(user.uid) || false) : false;
   const isBookmarked = user ? (feed.bookmarkedBy?.includes(user.uid) || false) : false;
@@ -103,6 +153,11 @@ const FeedCard: React.FC<FeedCardProps> = ({ feed, onClick, language, onSpotClic
   const [isCommenting, setIsCommenting] = useState(false);
 
   const mainMedia = feed.media[0];
+
+  // 말풍선 정보 (실제 데이터 또는 데모)
+  const photoComment = mainMedia?.bubbleText || "제주 바다가 정말 아름답네요!"; // 실제 데이터 우선, 없으면 데모
+  const bubblePosition = mainMedia?.bubblePosition || 'bottom-center';
+  const bubbleOpacity = mainMedia?.bubbleOpacity || 95;
 
   // 댓글 추가
   const handleAddComment = async () => {
@@ -355,6 +410,19 @@ const FeedCard: React.FC<FeedCardProps> = ({ feed, onClick, language, onSpotClic
             </div>
           )}
 
+          {/* 사진 코멘트 말풍선 */}
+          {photoComment && (
+            <div className={`absolute ${getBubblePositionClass(bubblePosition)} max-w-[85%] z-10`}>
+              <div className="relative bg-white backdrop-blur-sm text-gray-900 px-4 py-2.5 rounded-2xl shadow-lg" style={{ opacity: bubbleOpacity / 100 }}>
+                <p className="text-sm font-medium leading-snug text-center">
+                  {photoComment}
+                </p>
+                {/* 말풍선 꼬리 */}
+                <div className={`absolute ${getBubbleTailClass(bubblePosition)} w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent ${getBubbleTailBorderClass(bubblePosition)}`} style={{ opacity: bubbleOpacity / 100 }}></div>
+              </div>
+            </div>
+          )}
+
           {/* EXIF 정보 오버레이 (하단) */}
           {mainMedia.exif && Object.keys(mainMedia.exif).length > 0 && (
             <div className="absolute bottom-2 left-2 right-2 bg-black bg-opacity-50 text-white rounded-lg p-3 space-y-2 max-h-[40vh] overflow-y-auto text-xs">
@@ -404,29 +472,59 @@ const FeedCard: React.FC<FeedCardProps> = ({ feed, onClick, language, onSpotClic
         </div>
       )}
 
-      {/* 사업자 웹사이트 CTA 버튼 */}
-      {feed.userRole === 'store' && feed.businessWebsite && (
-        <div className="px-3 pb-2" onClick={(e) => e.stopPropagation()}>
-          <a
-            href={feed.businessWebsite}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all text-center"
+      {/* CTA 버튼 섹션 */}
+      <div className="px-3 pb-3" onClick={(e) => e.stopPropagation()}>
+        <div className={`grid ${gridColsClass} gap-2`}>
+          {/* 1. 위치보기 (기본) */}
+          <button
+            onClick={() => setIsLocationModalOpen(true)}
+            className="flex flex-col items-center justify-center gap-1.5 py-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors"
           >
-            <div className="flex items-center justify-center gap-2">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M4.083 9h1.946c.089-1.546.383-2.97.837-4.118A6.004 6.004 0 004.083 9zM10 2a8 8 0 100 16 8 8 0 000-16zm0 2c-.076 0-.232.032-.465.262-.238.234-.497.623-.737 1.182-.389.907-.673 2.142-.766 3.556h3.936c-.093-1.414-.377-2.649-.766-3.556-.24-.56-.5-.948-.737-1.182C10.232 4.032 10.076 4 10 4zm3.971 5c-.089-1.546-.383-2.97-.837-4.118A6.004 6.004 0 0115.917 9h-1.946zm-2.003 2H8.032c.093 1.414.377 2.649.766 3.556.24.56.5.948.737 1.182.233.23.389.262.465.262.076 0 .232-.032.465-.262.238-.234.498-.623.737-1.182.389-.907.673-2.142.766-3.556zm1.166 4.118c.454-1.147.748-2.572.837-4.118h1.946a6.004 6.004 0 01-2.783 4.118zm-6.268 0C6.412 13.97 6.118 12.546 6.03 11H4.083a6.004 6.004 0 002.783 4.118z" clipRule="evenodd" />
+            <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+            </svg>
+            <span className="text-xs font-semibold text-blue-700">위치보기</span>
+          </button>
+
+          {/* 2. 업체정보 (기본) */}
+          <button
+            onClick={() => setIsBusinessInfoModalOpen(true)}
+            className="flex flex-col items-center justify-center gap-1.5 py-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
+          >
+            <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
+            </svg>
+            <span className="text-xs font-semibold text-gray-700">업체정보</span>
+          </button>
+
+          {/* 3. 바로예약 (옵션) */}
+          {hasReservationSystem && (
+            <button
+              onClick={() => alert('예약 페이지로 이동 (데모)')}
+              className="flex flex-col items-center justify-center gap-1.5 py-3 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors"
+            >
+              <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
               </svg>
-              <span>
-                {language === 'KOR' ? '웹사이트 바로가기' : language === 'ENG' ? 'Visit Website' : '访问网站'}
-              </span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              <span className="text-xs font-semibold text-green-700">바로예약</span>
+            </button>
+          )}
+
+          {/* 4. 특가할인 (옵션) */}
+          {hasSpecialOffer && (
+            <button
+              onClick={() => alert('특가상품 페이지로 이동 (데모)')}
+              className="flex flex-col items-center justify-center gap-1.5 py-3 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors"
+            >
+              <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
               </svg>
-            </div>
-          </a>
+              <span className="text-xs font-semibold text-red-700">특가할인</span>
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
       {/* 주변 가볼만한곳 (식당/카페) */}
       {feed.nearbySpots && feed.nearbySpots.length > 0 && (
@@ -597,6 +695,127 @@ const FeedCard: React.FC<FeedCardProps> = ({ feed, onClick, language, onSpotClic
       {/* 로그인 모달 */}
       {isLoginModalOpen && (
         <LoginModal onClose={() => setIsLoginModalOpen(false)} />
+      )}
+
+      {/* 위치보기 모달 */}
+      {isLocationModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" onClick={() => setIsLocationModalOpen(false)}>
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900">위치 정보</h3>
+                <button
+                  onClick={() => setIsLocationModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* 지도 영역 (데모) */}
+              <div className="bg-gray-200 rounded-lg h-64 flex items-center justify-center mb-4">
+                <div className="text-center">
+                  <svg className="w-16 h-16 text-gray-400 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                  </svg>
+                  <p className="text-gray-500">지도 API 연동 예정</p>
+                </div>
+              </div>
+
+              {/* 상세 주소 */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">상세 주소</label>
+                <p className="text-gray-900 bg-gray-50 p-3 rounded-lg border">제주특별자치도 제주시 애월읍 (데모 주소)</p>
+              </div>
+
+              {/* 네비게이션 바로가기 버튼 */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => alert('카카오맵 네비 실행 (데모)')}
+                  className="flex items-center justify-center gap-2 py-3 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                  </svg>
+                  카카오맵
+                </button>
+                <button
+                  onClick={() => alert('네이버맵 네비 실행 (데모)')}
+                  className="flex items-center justify-center gap-2 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                  </svg>
+                  네이버맵
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 업체정보 모달 */}
+      {isBusinessInfoModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" onClick={() => setIsBusinessInfoModalOpen(false)}>
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900">업체 정보</h3>
+                <button
+                  onClick={() => setIsBusinessInfoModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* 업체 기본 정보 */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">업체명</label>
+                  <p className="text-gray-900 font-semibold">제주 맛집 (데모)</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">전화번호</label>
+                  <a href="tel:064-123-4567" className="text-blue-600 hover:underline">064-123-4567</a>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">영업시간</label>
+                  <p className="text-gray-900">매일 10:00 - 22:00</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">휴무일</label>
+                  <p className="text-gray-900">연중무휴</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">소개</label>
+                  <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">
+                    제주도 현지인이 사랑하는 맛집입니다. 신선한 제주 식재료를 사용하여 정성스럽게 요리합니다. (데모 설명)
+                  </p>
+                </div>
+
+                {/* 네이버플레이스 링크 */}
+                <button
+                  onClick={() => alert('네이버플레이스로 이동 (데모)')}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
+                  </svg>
+                  네이버플레이스에서 더보기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

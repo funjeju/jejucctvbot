@@ -563,6 +563,10 @@ export interface FeedMedia {
   exif: FeedMediaExif;
   width?: number;
   height?: number;
+  // 말풍선 설정
+  bubbleText?: string; // 말풍선 텍스트 (최대 20자)
+  bubblePosition?: 'top-left' | 'top-center' | 'top-right' | 'center-left' | 'center' | 'center-right' | 'bottom-left' | 'bottom-center' | 'bottom-right' | 'top-left-2' | 'top-center-2' | 'top-right-2' | 'bottom-left-2' | 'bottom-center-2' | 'bottom-right-2' | 'top-extra'; // 16분할 위치
+  bubbleOpacity?: number; // 말풍선 배경 투명도 (0-100)
 }
 
 // 사용자 역할 타입

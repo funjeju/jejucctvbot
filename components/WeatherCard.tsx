@@ -3,6 +3,7 @@ import type { WeatherCardData } from '../types';
 import Spinner from './common/Spinner';
 import Modal from './common/Modal';
 import Hls from 'hls.js';
+import { extractYouTubeId } from '../utils/youtube';
 
 interface WeatherCardProps {
   initialData: WeatherCardData;
@@ -123,11 +124,10 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ initialData, onComplete, skip
     }
   };
 
-  // 유튜브 영상 ID 추출 함수
+  // 유튜브 영상 ID 추출 함수 (통합 유틸 사용)
   const getYouTubeVideoId = (url: string): string | null => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
+    const videoId = extractYouTubeId(url);
+    return videoId || null;
   };
 
   // HLS Video Component

@@ -86,6 +86,7 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
     }
     return id;
   });
+  const [cctvLoadTime, setCctvLoadTime] = useState<number>(0);
 
   const t = translations[language];
 
@@ -199,14 +200,8 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
   }, []);
 
 
-  // Firestore에서 weatherSources 실시간 로드 - 'cam' 페이지 진입 시에만
+  // Firestore에서 weatherSources 실시간 로드 - 즉시 구독 (페이지 로드 시)
   useEffect(() => {
-    // 'cam' 페이지가 아니면 CCTV 목록 불러오지 않음
-    if (currentPage !== 'cam') {
-      setIsLoading(false);
-      return;
-    }
-
     const q = query(collection(db, 'weatherSources'));
 
     const unsubscribe = onSnapshot(
@@ -238,7 +233,8 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
         });
         setCCTVs(cctvArray);
 
-        if (cctvArray.length > 0 && !selectedCCTV) {
+        // 'cam' 페이지일 때만 랜덤 CCTV 선택
+        if (currentPage === 'cam' && cctvArray.length > 0 && !selectedCCTV) {
           const randomIndex = Math.floor(Math.random() * cctvArray.length);
           setSelectedCCTV(cctvArray[randomIndex]);
         }
@@ -252,7 +248,7 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
     );
 
     return () => unsubscribe();
-  }, [currentPage]);
+  }, []); // 빈 배열로 변경 - 최초 1회만 실행
 
   // Firestore에서 낙서 실시간 로드 - cam 페이지 + 선택된 CCTV에 대해서만
   useEffect(() => {
@@ -347,20 +343,21 @@ const CCTVViewer: React.FC<CCTVViewerProps> = ({ spots, orooms, news }) => {
   }, []);
 
   const handleSelectCCTV = (cctv: WeatherSource) => {
+    // 3. CCTV 선택 시작 시간 기록
+    const selectStart = performance.now();
+    console.log(`⏱️ [Cam&Chat][3] "${cctv.title}" CCTV 선택 시작`);
+
+    setCctvLoadTime(selectStart);
+
+    // 4. State 업데이트
+    const stateStart = performance.now();
     setSelectedCCTV(cctv);
+    const stateEnd = performance.now();
+
+    console.log(`⏱️ [Cam&Chat][4] State 업데이트 완료: ${(stateEnd - stateStart).toFixed(2)}ms`);
   };
 
-  // CCTV 페이지에서만 로딩/에러 화면 표시
-  if (currentPage === 'cam' && isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-blue-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-orange-500 mx-auto mb-4"></div>
-          <p className="text-blue-700 font-semibold text-lg">{t.loading}</p>
-        </div>
-      </div>
-    );
-  }
+  // 로딩 화면 제거 - 논블로킹 렌더링으로 변경
 
   // 네비게이션 아이콘들
   const navIcons = {

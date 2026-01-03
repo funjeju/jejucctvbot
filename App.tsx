@@ -936,6 +936,23 @@ const App: React.FC = () => {
       <button
         onClick={() => setIsChatbotOpen(true)}
         className="fixed bottom-6 right-6 bg-gray-900 text-white p-4 rounded-full shadow-lg hover:bg-gray-800 transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 z-50"
+        aria-label="챗봇 열기"
+      >
+        <ChatbotIcon className="w-6 h-6" />
+      </button>
+
+      <Chatbot
+        isOpen={isChatbotOpen}
+        onClose={() => setIsChatbotOpen(false)}
+        spots={spots}
+        onNavigateToSpot={handleNavigateFromChatbot}
+      />
+
+      <WeatherChatModal
+        isOpen={isWeatherChatOpen}
+        onClose={() => setIsWeatherChatOpen(false)}
+        weatherSources={weatherSources}
+        onSaveSource={handleSaveWeatherSource}
         onDeleteSource={handleDeleteWeatherSource}
         onToggleCamChat={handleToggleCamChat}
       />

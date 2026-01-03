@@ -18,6 +18,46 @@ interface FeedCreateModalProps {
   onClose: () => void;
 }
 
+// 말풍선 위치 CSS 클래스 헬퍼 함수
+const getBubblePositionClass = (position: string) => {
+  const positions: { [key: string]: string } = {
+    'top-left': 'top-2 left-2',
+    'top-center': 'top-2 left-1/2 -translate-x-1/2',
+    'top-right': 'top-2 right-2',
+    'top-left-2': 'top-[25%] left-2',
+    'top-center-2': 'top-[25%] left-1/2 -translate-x-1/2',
+    'top-right-2': 'top-[25%] right-2',
+    'center-left': 'top-1/2 -translate-y-1/2 left-2',
+    'center': 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+    'center-right': 'top-1/2 -translate-y-1/2 right-2',
+    'bottom-left': 'bottom-[25%] left-2',
+    'bottom-center': 'bottom-[25%] left-1/2 -translate-x-1/2',
+    'bottom-right': 'bottom-[25%] right-2',
+    'bottom-left-2': 'bottom-2 left-2',
+    'bottom-center-2': 'bottom-2 left-1/2 -translate-x-1/2',
+    'bottom-right-2': 'bottom-2 right-2',
+  };
+  return positions[position] || 'bottom-4 left-1/2 -translate-x-1/2';
+};
+
+// 말풍선 꼬리 위치 클래스
+const getBubbleTailClass = (position: string) => {
+  if (position.includes('top')) return '-bottom-1.5 left-1/2 -translate-x-1/2';
+  if (position.includes('bottom')) return '-top-1.5 left-1/2 -translate-x-1/2';
+  if (position.includes('left')) return 'top-1/2 -translate-y-1/2 -right-1.5';
+  if (position.includes('right')) return 'top-1/2 -translate-y-1/2 -left-1.5';
+  return '-bottom-1.5 left-1/2 -translate-x-1/2';
+};
+
+// 말풍선 꼬리 방향 (border)
+const getBubbleTailBorderClass = (position: string) => {
+  if (position.includes('top')) return 'border-t-8 border-t-white';
+  if (position.includes('bottom')) return 'border-b-8 border-b-white';
+  if (position.includes('left')) return 'border-l-8 border-l-white';
+  if (position.includes('right')) return 'border-r-8 border-r-white';
+  return 'border-t-8 border-t-white';
+};
+
 const translations = {
   KOR: {
     title: '피드 작성',
@@ -95,9 +135,10 @@ const FeedCreateModal: React.FC<FeedCreateModalProps> = ({ spots, language, onCl
   const [feedType, setFeedType] = useState<'live' | 'cctv' | null>(null); // 피드 타입 선택
   const [content, setContent] = useState('');
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
-  const [mediaPreviews, setMediaPreviews] = useState<{ url: string; type: 'image' | 'video'; exif?: FeedMediaExif }[]>([]);
+  const [mediaPreviews, setMediaPreviews] = useState<{ url: string; type: 'image' | 'video'; exif?: FeedMediaExif; bubbleText?: string; bubblePosition?: string; bubbleOpacity?: number }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
+  const [editingBubbleIndex, setEditingBubbleIndex] = useState<number | null>(null); // 말풍선 편집 중인 미디어 인덱스
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const t = translations[language];
@@ -359,6 +400,31 @@ const FeedCreateModal: React.FC<FeedCreateModalProps> = ({ spots, language, onCl
   const handleRemoveMedia = (index: number) => {
     setMediaFiles(prev => prev.filter((_, i) => i !== index));
     setMediaPreviews(prev => prev.filter((_, i) => i !== index));
+    if (editingBubbleIndex === index) {
+      setEditingBubbleIndex(null);
+    }
+  };
+
+  // 말풍선 텍스트 업데이트
+  const handleBubbleTextChange = (index: number, text: string) => {
+    if (text.length > 20) return; // 20자 제한
+    setMediaPreviews(prev => prev.map((p, i) =>
+      i === index ? { ...p, bubbleText: text } : p
+    ));
+  };
+
+  // 말풍선 위치 업데이트
+  const handleBubblePositionChange = (index: number, position: string) => {
+    setMediaPreviews(prev => prev.map((p, i) =>
+      i === index ? { ...p, bubblePosition: position } : p
+    ));
+  };
+
+  // 말풍선 투명도 업데이트
+  const handleBubbleOpacityChange = (index: number, opacity: number) => {
+    setMediaPreviews(prev => prev.map((p, i) =>
+      i === index ? { ...p, bubbleOpacity: opacity } : p
+    ));
   };
 
   // 게시하기
@@ -406,6 +472,9 @@ const FeedCreateModal: React.FC<FeedCreateModalProps> = ({ spots, language, onCl
           type: isImage ? 'image' : 'video',
           url,
           exif: preview.exif || {},
+          bubbleText: preview.bubbleText,
+          bubblePosition: preview.bubblePosition as any,
+          bubbleOpacity: preview.bubbleOpacity,
         });
       }
 
@@ -790,59 +859,160 @@ const FeedCreateModal: React.FC<FeedCreateModalProps> = ({ spots, language, onCl
 
           {/* 미디어 미리보기 */}
           {mediaPreviews.length > 0 && (
-            <div className="grid grid-cols-2 gap-3">
-              {mediaPreviews.map((preview, index) => (
-                <div key={index} className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100">
-                  {preview.type === 'image' ? (
-                    <img src={preview.url} alt={`Preview ${index}`} className="w-full h-full object-cover" />
-                  ) : (
-                    <video src={preview.url} className="w-full h-full object-cover" muted />
-                  )}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                {mediaPreviews.map((preview, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100">
+                      {preview.type === 'image' ? (
+                        <img src={preview.url} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                      ) : (
+                        <video src={preview.url} className="w-full h-full object-cover" muted />
+                      )}
 
-                  {/* EXIF 오버레이 */}
-                  {preview.exif && (
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-3 text-white text-xs space-y-1">
-                      {/* 위치 */}
-                      {preview.exif.location && (
-                        <div className="flex items-center gap-1">
-                          <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                          </svg>
-                          <span className="line-clamp-1 font-medium">{preview.exif.location}</span>
+                      {/* 말풍선 미리보기 */}
+                      {preview.bubbleText && preview.bubblePosition && (
+                        <div className={`absolute ${getBubblePositionClass(preview.bubblePosition)} max-w-[85%]`}>
+                          <div className="relative bg-white px-3 py-2 rounded-2xl shadow-lg" style={{ opacity: (preview.bubbleOpacity || 95) / 100 }}>
+                            <p className="text-xs font-medium leading-snug text-center text-gray-900">
+                              {preview.bubbleText}
+                            </p>
+                            <div className={`absolute ${getBubbleTailClass(preview.bubblePosition)} w-0 h-0 border-l-6 border-l-transparent border-r-6 border-r-transparent ${getBubbleTailBorderClass(preview.bubblePosition)}`} style={{ opacity: (preview.bubbleOpacity || 95) / 100 }}></div>
+                          </div>
                         </div>
                       )}
-                      {/* 날짜/시간 */}
-                      {preview.exif.dateTime && (
-                        <div className="opacity-90">{preview.exif.dateTime}</div>
-                      )}
-                      {/* 카메라 정보 */}
-                      {preview.exif.camera && preview.exif.camera !== 'Unknown' && (
-                        <div className="opacity-80 text-[10px]">📷 {preview.exif.camera}</div>
-                      )}
-                      {/* 촬영 설정 */}
-                      {(preview.exif.fNumber || preview.exif.iso || preview.exif.exposureTime || preview.exif.focalLength) && (
-                        <div className="flex gap-2 text-[10px] opacity-80">
-                          {preview.exif.fNumber && <span>{preview.exif.fNumber}</span>}
-                          {preview.exif.exposureTime && <span>{preview.exif.exposureTime}</span>}
-                          {preview.exif.iso && <span>ISO{preview.exif.iso}</span>}
-                          {preview.exif.focalLength && <span>{preview.exif.focalLength}</span>}
+
+                      {/* EXIF 오버레이 */}
+                      {preview.exif && (
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-3 text-white text-xs space-y-1 pointer-events-none">
+                          {/* 위치 */}
+                          {preview.exif.location && (
+                            <div className="flex items-center gap-1">
+                              <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                              </svg>
+                              <span className="line-clamp-1 font-medium">{preview.exif.location}</span>
+                            </div>
+                          )}
+                          {/* 날짜/시간 */}
+                          {preview.exif.dateTime && (
+                            <div className="opacity-90">{preview.exif.dateTime}</div>
+                          )}
+                          {/* 카메라 정보 */}
+                          {preview.exif.camera && preview.exif.camera !== 'Unknown' && (
+                            <div className="opacity-80 text-[10px]">📷 {preview.exif.camera}</div>
+                          )}
+                          {/* 촬영 설정 */}
+                          {(preview.exif.fNumber || preview.exif.iso || preview.exif.exposureTime || preview.exif.focalLength) && (
+                            <div className="flex gap-2 text-[10px] opacity-80">
+                              {preview.exif.fNumber && <span>{preview.exif.fNumber}</span>}
+                              {preview.exif.exposureTime && <span>{preview.exif.exposureTime}</span>}
+                              {preview.exif.iso && <span>ISO{preview.exif.iso}</span>}
+                              {preview.exif.focalLength && <span>{preview.exif.focalLength}</span>}
+                            </div>
+                          )}
                         </div>
                       )}
+
+                      {/* 삭제 버튼 */}
+                      <button
+                        onClick={() => handleRemoveMedia(index)}
+                        disabled={isUploading}
+                        className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1.5 hover:bg-red-700 z-10"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                     </div>
-                  )}
 
-                  {/* 삭제 버튼 */}
-                  <button
-                    onClick={() => handleRemoveMedia(index)}
-                    disabled={isUploading}
-                    className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1.5 hover:bg-red-700"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+                    {/* 말풍선 설정 버튼 */}
+                    <button
+                      onClick={() => setEditingBubbleIndex(editingBubbleIndex === index ? null : index)}
+                      disabled={isUploading}
+                      className="w-full text-xs py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-medium rounded-lg transition-colors"
+                    >
+                      {editingBubbleIndex === index ? '💬 말풍선 닫기' : '💬 말풍선 추가'}
+                    </button>
+
+                    {/* 말풍선 편집 UI */}
+                    {editingBubbleIndex === index && (
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-3">
+                        {/* 텍스트 입력 */}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            말풍선 텍스트 (최대 20자)
+                          </label>
+                          <input
+                            type="text"
+                            value={preview.bubbleText || ''}
+                            onChange={(e) => handleBubbleTextChange(index, e.target.value)}
+                            maxLength={20}
+                            placeholder="사진에 표시할 문구를 입력하세요"
+                            className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                            disabled={isUploading}
+                          />
+                          <p className="text-xs text-gray-500 mt-1 text-right">
+                            {(preview.bubbleText || '').length} / 20
+                          </p>
+                        </div>
+
+                        {/* 위치 선택 (16분할) */}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-2">
+                            말풍선 위치
+                          </label>
+                          <div className="grid grid-cols-4 gap-1">
+                            {['top-extra', 'top-left', 'top-center', 'top-right',
+                              'top-left-2', 'top-center-2', 'top-right-2', 'top-right',
+                              'center-left', 'center', 'center-right', 'center-right',
+                              'bottom-left-2', 'bottom-center-2', 'bottom-right-2', 'bottom-right'].map((pos, i) => {
+                                // 16분할 실제 위치 매핑
+                                const positions = [
+                                  'top-left', 'top-left', 'top-center', 'top-right',
+                                  'top-left-2', 'top-center-2', 'top-right-2', 'top-right-2',
+                                  'center-left', 'center-left', 'center', 'center-right',
+                                  'bottom-left', 'bottom-center', 'bottom-right', 'bottom-right-2'
+                                ];
+                                const position = positions[i];
+                                return (
+                                  <button
+                                    key={i}
+                                    onClick={() => handleBubblePositionChange(index, position)}
+                                    className={`aspect-square rounded border-2 text-xs font-bold transition-colors ${
+                                      preview.bubblePosition === position
+                                        ? 'bg-indigo-600 border-indigo-600 text-white'
+                                        : 'bg-white border-gray-300 text-gray-400 hover:border-indigo-400'
+                                    }`}
+                                    disabled={isUploading}
+                                  >
+                                    {i + 1}
+                                  </button>
+                                );
+                              })}
+                          </div>
+                        </div>
+
+                        {/* 투명도 슬라이더 */}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            배경 투명도: {preview.bubbleOpacity || 95}%
+                          </label>
+                          <input
+                            type="range"
+                            min="30"
+                            max="100"
+                            value={preview.bubbleOpacity || 95}
+                            onChange={(e) => handleBubbleOpacityChange(index, parseInt(e.target.value))}
+                            className="w-full"
+                            disabled={isUploading}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

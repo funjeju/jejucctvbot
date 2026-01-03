@@ -3,6 +3,7 @@ import type { WeatherSource } from '../types';
 import Modal from './common/Modal';
 import HLSVideoPlayer from './HLSVideoPlayer';
 import VideoJSPlayer from './VideoJSPlayer';
+import { extractYouTubeId } from '../utils/youtube';
 
 // Helper to detect video type
 const getVideoType = (url: string, title: string): 'youtube' | 'hls' | 'newWindow' => {
@@ -33,19 +34,8 @@ const getVideoType = (url: string, title: string): 'youtube' | 'hls' | 'newWindo
 
 // Helper to convert YouTube watch URL to embed URL
 const getYouTubeEmbedUrl = (url: string): string | null => {
-  let videoId = null;
-  try {
-    const urlObj = new URL(url);
-    if (urlObj.hostname === 'www.youtube.com' || urlObj.hostname === 'youtube.com') {
-      videoId = urlObj.searchParams.get('v');
-    } else if (urlObj.hostname === 'youtu.be') {
-      videoId = urlObj.pathname.substring(1);
-    }
-    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1` : null;
-  } catch (error) {
-    console.error("Invalid URL:", error);
-    return null;
-  }
+  const videoId = extractYouTubeId(url);
+  return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1` : null;
 };
 
 // Helper to truncate text
@@ -155,6 +145,13 @@ interface LiveWeatherViewModalProps {
 const LiveWeatherViewModal: React.FC<LiveWeatherViewModalProps> = ({ isOpen, onClose, sources }) => {
   const [activeSource, setActiveSource] = useState<WeatherSource | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<'전체' | '동쪽' | '서쪽' | '남쪽' | '북쪽'>('전체');
+  const [loadTimes, setLoadTimes] = useState<{
+    buttonClick?: number;
+    stateUpdate?: number;
+    urlGeneration?: number;
+    iframeRender?: number;
+    total?: number;
+  }>({});
 
   // Filter sources by region
   const filteredSources = selectedRegion === '전체'
@@ -184,8 +181,22 @@ const LiveWeatherViewModal: React.FC<LiveWeatherViewModalProps> = ({ isOpen, onC
     }
   }, [selectedRegion]); // filteredSources와 activeSource 제거
 
+  // 3. URL 생성 시간 측정
+  const startUrlGen = performance.now();
   const videoType = activeSource ? getVideoType(activeSource.youtubeUrl, activeSource.title) : 'newWindow';
   const embedUrl = activeSource && videoType === 'youtube' ? getYouTubeEmbedUrl(activeSource.youtubeUrl) : null;
+  const urlGenTime = performance.now() - startUrlGen;
+
+  // URL 생성 완료 시 시간 기록
+  React.useEffect(() => {
+    if (embedUrl && loadTimes.buttonClick && activeSource) {
+      setLoadTimes(prev => ({
+        ...prev,
+        urlGeneration: urlGenTime,
+      }));
+      console.log(`⏱️ [5] URL 생성 완료: ${urlGenTime.toFixed(2)}ms`);
+    }
+  }, [embedUrl, activeSource?.id]);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="실시간 날씨 영상">
@@ -218,14 +229,15 @@ const LiveWeatherViewModal: React.FC<LiveWeatherViewModalProps> = ({ isOpen, onC
                 <div className="bg-black rounded-lg overflow-hidden aspect-video">
                   {videoType === 'youtube' && embedUrl ? (
                     <iframe
+                      key={activeSource.id}
                       width="100%"
                       height="100%"
-                      src={embedUrl}
-                      title={activeSource?.title}
+                      src={`${embedUrl}&vq=hd720`}
+                      title={activeSource.title}
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
-                    ></iframe>
+                    />
                   ) : videoType === 'hls' && activeSource ? (
                     <VideoJSPlayer
                       src={activeSource.youtubeUrl}
@@ -271,7 +283,26 @@ const LiveWeatherViewModal: React.FC<LiveWeatherViewModalProps> = ({ isOpen, onC
                 {filteredSources.map(source => (
                   <button
                     key={source.id}
-                    onClick={() => setActiveSource(source)}
+                    onClick={() => {
+                      // 3. 버튼 클릭 시작 시간 기록
+                      const clickTime = performance.now();
+                      console.log(`⏱️ [3] "${source.title}" 버튼 클릭 시작`);
+
+                      setLoadTimes({
+                        buttonClick: clickTime,
+                      });
+
+                      // 4. State 업데이트 시작
+                      const stateStart = performance.now();
+                      setActiveSource(source);
+                      const stateEnd = performance.now();
+
+                      console.log(`⏱️ [4] State 업데이트 완료: ${(stateEnd - stateStart).toFixed(2)}ms`);
+                      setLoadTimes(prev => ({
+                        ...prev,
+                        stateUpdate: stateEnd - stateStart,
+                      }));
+                    }}
                     className={`px-2 py-1 text-xs font-medium rounded transition-colors text-center ${
                       activeSource?.id === source.id
                         ? 'bg-indigo-600 text-white'

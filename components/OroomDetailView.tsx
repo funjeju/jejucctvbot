@@ -1,12 +1,12 @@
 import React from 'react';
 import type { OroomData } from '../types';
 import Button from './common/Button';
+import { extractYouTubeId } from '../utils/youtube';
 
-// YouTube 비디오 ID 추출 함수
+// YouTube 비디오 ID 추출 함수 (통합 유틸 사용)
 const getYouTubeVideoId = (url: string): string | null => {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
+  const videoId = extractYouTubeId(url);
+  return videoId || null;
 };
 
 interface OroomDetailViewProps {
